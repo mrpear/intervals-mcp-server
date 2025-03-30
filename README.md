@@ -45,13 +45,13 @@ uv pip install -e .
 
 ### 5. Set up environment variables
 
-Copy the `.env.example` file to `.env` and update the values:
+Make a copy of `.env.example` and name it `.env` by running the following command:
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit the `.env` file with your Intervals.icu API credentials:
+Then edit the `.env` file and set your Intervals.icu athlete id and API key:
 
 ```
 API_KEY=your_intervals_api_key_here
@@ -71,24 +71,22 @@ Your athlete ID is typically visible in the URL when you're logged into Interval
 
 ## Usage
 
-### 1. Run the server
-
-```bash
-python intervals_mcp_server.py
-```
-
-### 2. Configure Claude Desktop
+### 1. Configure Claude Desktop
 
 To use this server with Claude Desktop, you need to add it to your Claude Desktop configuration.
 
-1. Open your Claude Desktop App configuration at `~/Library/Application Support/Claude/claude_desktop_config.json` in a text editor. Create the file if it doesn't exist.
+1. Run the following from the `intervals_mcp_server` directory to configure Claude Desktop:
 
-2. Add the following to your configuration:
+```bash
+mcp install src/intervals_mcp_server/server.py --name "Intervals.icu MCP Server"
+```
+
+2. If you open your Claude Desktop App configuration file `claude_desktop_config.json`, it should look like this:
 
 ```json
 {
   "mcpServers": {
-    "Intervals MCP Server": {
+    "Intervals.icu": {
       "command": "uv",
       "args": [
         "run",
@@ -96,18 +94,20 @@ To use this server with Claude Desktop, you need to add it to your Claude Deskto
         "mcp[cli]",
         "mcp",
         "run",
-        "/path/to/intervals-mcp-server/intervals_mcp_server.py"
+        "/path/to/intervals-mcp-server/src/intervals_mcp_server/server.py"
       ]
     }
   }
 }
 ```
 
+Where `/path/to/` is the path to the `intervals-mcp-server` code folder in your system.
+
 3. Restart Claude Desktop.
 
-### 3. Use the MCP server with Claude
+### 2. Use the MCP server with Claude
 
-Once the server is running and Claude Desktop is configured, you can use the following tools:
+Once the server is running and Claude Desktop is configured, you can use the following tools to ask questions about your past and future activities, events, and wellness data.
 
 - `get_activities`: Retrieve a list of activities
 - `get_activity_details`: Get detailed information for a specific activity
