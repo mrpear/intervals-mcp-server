@@ -1,6 +1,6 @@
 # Intervals.icu MCP Server
 
-This package implements a Model Context Protocol (MCP) server for connecting Claude with the Intervals.icu API. It provides tools for authentication, activity data retrieval, workout management, and wellness data handling.
+Model Context Protocol (MCP) server for connecting Claude with the Intervals.icu API. It provides tools for authentication and data retrieval for activities, events, and wellness data.
 
 ## Requirements
 
