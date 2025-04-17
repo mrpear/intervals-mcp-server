@@ -1,0 +1,4 @@
+include README.md
+include .env.example
+include intervals_mcp_server.py
+include utils/*.py 
