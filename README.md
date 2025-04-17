@@ -20,7 +20,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 2. Clone this repository
 
 ```bash
-git clone https://github.com/yourusername/intervals-mcp-server.git
+git clone https://github.com/mvilanova/intervals-mcp-server.git
 cd intervals-mcp-server
 ```
 
