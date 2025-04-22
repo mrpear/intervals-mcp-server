@@ -11,6 +11,27 @@ requires-python = ">=3.10"
 license = { text = "GPL-3.0-only" }
 authors = [{ name = "Marc Vilanova", email = "barker-riddle.8z@icloud.com" }]
 dependencies = ["mcp[cli]>=1.4.0", "httpx>=0.25.0", "python-dotenv>=1.0.0"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries",
+]
+keywords = ["intervals", "cycling", "running", "mcp", "ai"]
+
+[project.urls]
+"Homepage" = "https://github.com/mvilanova/intervals-mcp-server"
+"Bug Tracker" = "https://github.com/mvilanova/intervals-mcp-server/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0", "mypy>=1.0.0", "ruff>=0.1.0"]
+
+[tool.hatch.build]
+include = [
+    "server.py",
+    "utils/*.py",
+    "README.md",
+    ".env.example",
+]
