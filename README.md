@@ -2,10 +2,6 @@
 
 Model Context Protocol (MCP) server for connecting Claude with the Intervals.icu API. It provides tools for authentication and data retrieval for activities, events, and wellness data.
 
-<a href="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server">
-  <img width="380" height="200" src="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server/badge" alt="Intervals.icu Server MCP server" />
-</a>
-
 ## Requirements
 
 - Python 3.10 or higher
@@ -107,6 +103,16 @@ mcp install src/intervals_mcp_server/server.py --name "Intervals.icu MCP Server"
 
 Where `/path/to/` is the path to the `intervals-mcp-server` code folder in your system.
 
+If you observe the following error messages when you open Claude Desktop, include the full path to `uv` in the command key in the `claude_desktop_config.json` configuration file. You can get the full path by running `which uv` in the terminal.
+
+```
+2025-04-28T10:21:11.462Z [info] [Intervals.icu MCP Server] Initializing server...
+2025-04-28T10:21:11.477Z [error] [Intervals.icu MCP Server] spawn uv ENOENT
+2025-04-28T10:21:11.477Z [error] [Intervals.icu MCP Server] spawn uv ENOENT
+2025-04-28T10:21:11.481Z [info] [Intervals.icu MCP Server] Server transport closed
+2025-04-28T10:21:11.481Z [info] [Intervals.icu MCP Server] Client transport closed
+```
+
 3. Restart Claude Desktop.
 
 ### 2. Use the MCP server with Claude
@@ -123,3 +129,11 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 ## License
 
 The GNU General Public License v3.0
+
+## Featured
+
+### Glama.ai
+
+<a href="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server/badge" alt="Intervals.icu Server MCP server" />
+</a>
