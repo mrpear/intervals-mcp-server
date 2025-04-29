@@ -2,6 +2,10 @@
 
 Model Context Protocol (MCP) server for connecting Claude with the Intervals.icu API. It provides tools for authentication and data retrieval for activities, events, and wellness data.
 
+<a href="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@mvilanova/intervals-mcp-server/badge" alt="Intervals.icu Server MCP server" />
+</a>
+
 ## Requirements
 
 - Python 3.10 or higher
