@@ -103,7 +103,7 @@ mcp install src/intervals_mcp_server/server.py --name "Intervals.icu MCP Server"
 
 Where `/path/to/` is the path to the `intervals-mcp-server` code folder in your system.
 
-If you observe the following error messages when you open Claude Desktop, include the full path to `uv` in the command key in the `claude_desktop_config.json` configuration file. You can get the full path by running `which a uv` in the terminal.
+If you observe the following error messages when you open Claude Desktop, include the full path to `uv` in the command key in the `claude_desktop_config.json` configuration file. You can get the full path by running `which uv` in the terminal.
 
 ```
 2025-04-28T10:21:11.462Z [info] [Intervals.icu MCP Server] Initializing server...
