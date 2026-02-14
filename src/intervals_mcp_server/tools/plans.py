@@ -18,6 +18,23 @@ from intervals_mcp_server.mcp_instance import mcp
 config = get_config()
 
 
+def _calculate_total_duration(steps: list[dict[str, Any]]) -> int:
+    """Calculate total duration in seconds from workout steps.
+
+    Handles nested steps (reps) recursively.
+    """
+    total = 0
+    for step in steps:
+        if "reps" in step and "steps" in step:
+            # Nested steps - multiply by reps
+            nested_duration = _calculate_total_duration(step["steps"])
+            total += nested_duration * step["reps"]
+        elif "duration" in step:
+            # Single step with duration
+            total += step["duration"]
+    return total
+
+
 @mcp.tool()
 async def create_training_plan(
     name: str,
@@ -77,8 +94,10 @@ async def create_training_plan(
         error_message = result.get("message", "Unknown error")
         return f"Error creating training plan: {error_message}"
 
-    # Return success
-    return json.dumps(result, indent=2)
+    # Return concise summary instead of full JSON
+    plan_id = result.get("id")
+    plan_name = result.get("name")
+    return f"✓ Created training plan '{plan_name}' (ID: {plan_id})"
 
 
 @mcp.tool()
@@ -112,19 +131,45 @@ async def add_workout_to_plan(
     # Build request body
     workout_data: dict[str, Any] = {
         "name": name,
-        "description": description,
         "folder_id": plan_id,
         "day": day,
         "type": workout_type,
     }
 
-    # Add workout_doc if provided
+    # Handle workout_doc: send BOTH text description AND JSON workout_doc
+    # Intervals.icu needs both for proper display
     if workout_doc is not None:
-        # Convert WorkoutDoc instance to dict if needed
-        if hasattr(workout_doc, 'to_dict'):
-            workout_data["workout_doc"] = workout_doc.to_dict()
+        from intervals_mcp_server.utils.types import WorkoutDoc as WorkoutDocType
+
+        # Convert to WorkoutDoc object if it's a dict
+        if isinstance(workout_doc, dict):
+            workout_doc_obj = WorkoutDocType.from_dict(workout_doc)
+            workout_doc_dict = workout_doc
         else:
-            workout_data["workout_doc"] = workout_doc
+            # Already a WorkoutDoc instance
+            workout_doc_obj = workout_doc
+            workout_doc_dict = workout_doc.to_dict()
+
+        # Set description as text format (for display in some views)
+        workout_data["description"] = str(workout_doc_obj)
+
+        # Calculate total duration from steps
+        total_duration = 0
+        if "steps" in workout_doc_dict:
+            total_duration = _calculate_total_duration(workout_doc_dict["steps"])
+
+        # Add workout_doc as JSON (for structured data)
+        workout_data["workout_doc"] = {
+            "duration": total_duration,
+            "distance": 0,
+            "steps": workout_doc_dict.get("steps", [])
+        }
+
+        # Add moving_time (shows duration badge in plan view)
+        workout_data["moving_time"] = total_duration
+    else:
+        # No workout_doc, use the provided description
+        workout_data["description"] = description
 
     # Make API request
     result = await make_intervals_request(
@@ -139,8 +184,11 @@ async def add_workout_to_plan(
         error_message = result.get("message", "Unknown error")
         return f"Error adding workout to plan: {error_message}"
 
-    # Return success
-    return json.dumps(result, indent=2)
+    # Return concise summary
+    workout_id = result.get("id")
+    workout_name = result.get("name")
+    duration_mins = result.get("moving_time", 0) // 60
+    return f"✓ Added workout '{workout_name}' (ID: {workout_id}, Duration: {duration_mins}min) to plan on day {day}"
 
 
 @mcp.tool()
@@ -167,12 +215,50 @@ async def add_workouts_bulk(
     if error_msg:
         return error_msg
 
+    # Process each workout: send BOTH text description AND JSON workout_doc
+    from intervals_mcp_server.utils.types import WorkoutDoc as WorkoutDocType
+    processed_workouts = []
+    for workout in workouts:
+        workout_copy = workout.copy()
+
+        # If workout has workout_doc, process it
+        if "workout_doc" in workout_copy and workout_copy["workout_doc"] is not None:
+            workout_doc = workout_copy["workout_doc"]
+
+            # Convert to WorkoutDoc object if needed
+            if isinstance(workout_doc, dict):
+                workout_doc_obj = WorkoutDocType.from_dict(workout_doc)
+                workout_doc_dict = workout_doc
+            else:
+                workout_doc_obj = workout_doc
+                workout_doc_dict = workout_doc.to_dict()
+
+            # Set description as text format
+            workout_copy["description"] = str(workout_doc_obj)
+
+            # Calculate total duration from steps
+            total_duration = 0
+            if "steps" in workout_doc_dict:
+                total_duration = _calculate_total_duration(workout_doc_dict["steps"])
+
+            # Replace workout_doc with structured version
+            workout_copy["workout_doc"] = {
+                "duration": total_duration,
+                "distance": 0,
+                "steps": workout_doc_dict.get("steps", [])
+            }
+
+            # Add moving_time for duration badge in plan view
+            workout_copy["moving_time"] = total_duration
+
+        processed_workouts.append(workout_copy)
+
     # Make API request
     result = await make_intervals_request(
         url=f"/athlete/{athlete_id_to_use}/workouts/bulk",
         api_key=api_key,
         method="POST",
-        data=workouts,
+        data=processed_workouts,
     )
 
     # Handle errors
@@ -180,8 +266,12 @@ async def add_workouts_bulk(
         error_message = result.get("message", "Unknown error")
         return f"Error adding workouts in bulk: {error_message}"
 
-    # Return success
-    return json.dumps(result, indent=2)
+    # Return concise summary
+    if isinstance(result, list):
+        count = len(result)
+        total_duration_mins = sum(w.get("moving_time", 0) for w in result) // 60
+        return f"✓ Added {count} workouts in bulk (Total duration: {total_duration_mins}min)"
+    return f"✓ Added workouts in bulk"
 
 
 @mcp.tool()
@@ -212,8 +302,23 @@ async def get_training_plans(
         error_message = result.get("message", "Unknown error")
         return f"Error fetching training plans: {error_message}"
 
-    # Return success
-    return json.dumps(result, indent=2)
+    # Return concise summary of plans
+    if isinstance(result, list):
+        plans = [f for f in result if f.get("type") == "PLAN"]
+        if not plans:
+            return "No training plans found"
+
+        summary = f"Found {len(plans)} training plan(s):\n\n"
+        for plan in plans:
+            plan_id = plan.get("id")
+            plan_name = plan.get("name")
+            num_workouts = len(plan.get("children", []))
+            start_date = plan.get("start_date_local", "Not set")
+            summary += f"• {plan_name} (ID: {plan_id})\n"
+            summary += f"  - Workouts: {num_workouts}\n"
+            summary += f"  - Start date: {start_date}\n\n"
+        return summary
+    return "No training plans found"
 
 
 @mcp.tool()
