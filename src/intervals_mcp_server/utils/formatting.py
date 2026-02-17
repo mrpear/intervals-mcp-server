@@ -8,93 +8,134 @@ from datetime import datetime
 from typing import Any
 
 
-def format_activity_summary(activity: dict[str, Any]) -> str:
-    """Format an activity into a readable string."""
-    start_time = activity.get("startTime", activity.get("start_date", "Unknown"))
+def _add_field(lines: list[str], label: str, value: Any, unit: str = "") -> None:
+    """Add a field to lines only if value is not None/empty."""
+    if value is not None and value != "" and value != "N/A":
+        lines.append(f"{label}: {value}{unit}")
 
+
+def format_activity_summary(activity: dict[str, Any]) -> str:
+    """Format an activity into a readable string, showing only non-empty fields."""
+    lines = []
+
+    # Basic info (always show)
+    start_time = activity.get("startTime", activity.get("start_date", "Unknown"))
     if isinstance(start_time, str) and len(start_time) > 10:
-        # Format datetime if it's a full ISO string
         try:
             dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
             start_time = dt.strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
             pass
 
-    rpe = activity.get("perceived_exertion", None)
-    if rpe is None:
-        rpe = activity.get("icu_rpe", "N/A")
-    if isinstance(rpe, (int, float)):
-        rpe = f"{rpe}/10"
+    lines.append(f"Activity: {activity.get('name', 'Unnamed')}")
+    _add_field(lines, "ID", activity.get("id"))
+    _add_field(lines, "Type", activity.get("type"))
+    _add_field(lines, "Date", start_time)
+    _add_field(lines, "Description", activity.get("description"))
+    _add_field(lines, "Distance", activity.get("distance"), " meters")
+    _add_field(lines, "Duration", activity.get("duration") or activity.get("elapsed_time"), " seconds")
+    _add_field(lines, "Moving Time", activity.get("moving_time"), " seconds")
 
-    feel = activity.get("feel", "N/A")
-    if isinstance(feel, int):
-        feel = f"{feel}/5"
+    elevation_gain = activity.get("elevationGain") or activity.get("total_elevation_gain")
+    _add_field(lines, "Elevation Gain", elevation_gain, " meters")
+    _add_field(lines, "Elevation Loss", activity.get("total_elevation_loss"), " meters")
 
-    return f"""
-Activity: {activity.get("name", "Unnamed")}
-ID: {activity.get("id", "N/A")}
-Type: {activity.get("type", "Unknown")}
-Date: {start_time}
-Description: {activity.get("description", "N/A")}
-Distance: {activity.get("distance", 0)} meters
-Duration: {activity.get("duration", activity.get("elapsed_time", 0))} seconds
-Moving Time: {activity.get("moving_time", "N/A")} seconds
-Elevation Gain: {activity.get("elevationGain", activity.get("total_elevation_gain", 0))} meters
-Elevation Loss: {activity.get("total_elevation_loss", "N/A")} meters
+    # Power Data
+    power_lines = []
+    avg_power = activity.get("avgPower") or activity.get("icu_average_watts") or activity.get("average_watts")
+    _add_field(power_lines, "Average Power", avg_power, " watts")
+    _add_field(power_lines, "Weighted Avg Power", activity.get("icu_weighted_avg_watts"), " watts")
+    _add_field(power_lines, "Training Load", activity.get("trainingLoad") or activity.get("icu_training_load"))
+    _add_field(power_lines, "FTP", activity.get("icu_ftp"), " watts")
+    _add_field(power_lines, "Kilojoules", activity.get("icu_joules"))
+    _add_field(power_lines, "Intensity", activity.get("icu_intensity"))
+    _add_field(power_lines, "Power:HR Ratio", activity.get("icu_power_hr"))
+    _add_field(power_lines, "Variability Index", activity.get("icu_variability_index"))
 
-Power Data:
-Average Power: {activity.get("avgPower", activity.get("icu_average_watts", activity.get("average_watts", "N/A")))} watts
-Weighted Avg Power: {activity.get("icu_weighted_avg_watts", "N/A")} watts
-Training Load: {activity.get("trainingLoad", activity.get("icu_training_load", "N/A"))}
-FTP: {activity.get("icu_ftp", "N/A")} watts
-Kilojoules: {activity.get("icu_joules", "N/A")}
-Intensity: {activity.get("icu_intensity", "N/A")}
-Power:HR Ratio: {activity.get("icu_power_hr", "N/A")}
-Variability Index: {activity.get("icu_variability_index", "N/A")}
+    if power_lines:
+        lines.append("\nPower Data:")
+        lines.extend(power_lines)
 
-Heart Rate Data:
-Average Heart Rate: {activity.get("avgHr", activity.get("average_heartrate", "N/A"))} bpm
-Max Heart Rate: {activity.get("max_heartrate", "N/A")} bpm
-LTHR: {activity.get("lthr", "N/A")} bpm
-Resting HR: {activity.get("icu_resting_hr", "N/A")} bpm
-Decoupling: {activity.get("decoupling", "N/A")}
+    # Heart Rate Data
+    hr_lines = []
+    avg_hr = activity.get("avgHr") or activity.get("average_heartrate")
+    _add_field(hr_lines, "Average Heart Rate", avg_hr, " bpm")
+    _add_field(hr_lines, "Max Heart Rate", activity.get("max_heartrate"), " bpm")
+    _add_field(hr_lines, "LTHR", activity.get("lthr"), " bpm")
+    _add_field(hr_lines, "Resting HR", activity.get("icu_resting_hr"), " bpm")
+    _add_field(hr_lines, "Decoupling", activity.get("decoupling"))
 
-Other Metrics:
-Cadence: {activity.get("average_cadence", "N/A")} rpm
-Calories: {activity.get("calories", "N/A")}
-Average Speed: {activity.get("average_speed", "N/A")} m/s
-Max Speed: {activity.get("max_speed", "N/A")} m/s
-Average Stride: {activity.get("average_stride", "N/A")}
-L/R Balance: {activity.get("avg_lr_balance", "N/A")}
-Weight: {activity.get("icu_weight", "N/A")} kg
-RPE: {rpe}
-Session RPE: {activity.get("session_rpe", "N/A")}
-Feel: {feel}
+    if hr_lines:
+        lines.append("\nHeart Rate Data:")
+        lines.extend(hr_lines)
 
-Environment:
-Trainer: {activity.get("trainer", "N/A")}
-Average Temp: {activity.get("average_temp", "N/A")}°C
-Min Temp: {activity.get("min_temp", "N/A")}°C
-Max Temp: {activity.get("max_temp", "N/A")}°C
-Avg Wind Speed: {activity.get("average_wind_speed", "N/A")} km/h
-Headwind %: {activity.get("headwind_percent", "N/A")}%
-Tailwind %: {activity.get("tailwind_percent", "N/A")}%
+    # Other Metrics
+    other_lines = []
+    _add_field(other_lines, "Cadence", activity.get("average_cadence"), " rpm")
+    _add_field(other_lines, "Calories", activity.get("calories"))
+    _add_field(other_lines, "Average Speed", activity.get("average_speed"), " m/s")
+    _add_field(other_lines, "Max Speed", activity.get("max_speed"), " m/s")
+    _add_field(other_lines, "Average Stride", activity.get("average_stride"))
+    _add_field(other_lines, "L/R Balance", activity.get("avg_lr_balance"))
+    _add_field(other_lines, "Weight", activity.get("icu_weight"), " kg")
 
-Training Metrics:
-Fitness (CTL): {activity.get("icu_ctl", "N/A")}
-Fatigue (ATL): {activity.get("icu_atl", "N/A")}
-TRIMP: {activity.get("trimp", "N/A")}
-Polarization Index: {activity.get("polarization_index", "N/A")}
-Power Load: {activity.get("power_load", "N/A")}
-HR Load: {activity.get("hr_load", "N/A")}
-Pace Load: {activity.get("pace_load", "N/A")}
-Efficiency Factor: {activity.get("icu_efficiency_factor", "N/A")}
+    rpe = activity.get("perceived_exertion") or activity.get("icu_rpe")
+    if rpe is not None:
+        rpe_str = f"{rpe}/10" if isinstance(rpe, (int, float)) else str(rpe)
+        _add_field(other_lines, "RPE", rpe_str)
+    _add_field(other_lines, "Session RPE", activity.get("session_rpe"))
 
-Device Info:
-Device: {activity.get("device_name", "N/A")}
-Power Meter: {activity.get("power_meter", "N/A")}
-File Type: {activity.get("file_type", "N/A")}
-"""
+    feel = activity.get("feel")
+    if feel is not None:
+        feel_str = f"{feel}/5" if isinstance(feel, int) else str(feel)
+        _add_field(other_lines, "Feel", feel_str)
+
+    if other_lines:
+        lines.append("\nOther Metrics:")
+        lines.extend(other_lines)
+
+    # Environment
+    env_lines = []
+    if activity.get("trainer") is not None:
+        _add_field(env_lines, "Trainer", activity.get("trainer"))
+    _add_field(env_lines, "Average Temp", activity.get("average_temp"), "°C")
+    _add_field(env_lines, "Min Temp", activity.get("min_temp"), "°C")
+    _add_field(env_lines, "Max Temp", activity.get("max_temp"), "°C")
+    _add_field(env_lines, "Avg Wind Speed", activity.get("average_wind_speed"), " km/h")
+    _add_field(env_lines, "Headwind %", activity.get("headwind_percent"), "%")
+    _add_field(env_lines, "Tailwind %", activity.get("tailwind_percent"), "%")
+
+    if env_lines:
+        lines.append("\nEnvironment:")
+        lines.extend(env_lines)
+
+    # Training Metrics
+    training_lines = []
+    _add_field(training_lines, "Fitness (CTL)", activity.get("icu_ctl"))
+    _add_field(training_lines, "Fatigue (ATL)", activity.get("icu_atl"))
+    _add_field(training_lines, "TRIMP", activity.get("trimp"))
+    if activity.get("polarization_index") is not None:
+        _add_field(training_lines, "Polarization Index", activity.get("polarization_index"))
+    _add_field(training_lines, "Power Load", activity.get("power_load"))
+    _add_field(training_lines, "HR Load", activity.get("hr_load"))
+    _add_field(training_lines, "Pace Load", activity.get("pace_load"))
+    _add_field(training_lines, "Efficiency Factor", activity.get("icu_efficiency_factor"))
+
+    if training_lines:
+        lines.append("\nTraining Metrics:")
+        lines.extend(training_lines)
+
+    # Device Info
+    device_lines = []
+    _add_field(device_lines, "Device", activity.get("device_name"))
+    _add_field(device_lines, "Power Meter", activity.get("power_meter"))
+    _add_field(device_lines, "File Type", activity.get("file_type"))
+
+    if device_lines:
+        lines.append("\nDevice Info:")
+        lines.extend(device_lines)
+
+    return "\n".join(lines) + "\n"
 
 
 def format_workout(workout: dict[str, Any]) -> str:
