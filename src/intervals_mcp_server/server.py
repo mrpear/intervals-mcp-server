@@ -3,11 +3,13 @@ Intervals.icu MCP Server
 
 This module implements a Model Context Protocol (MCP) server for connecting
 Claude with the Intervals.icu API. It provides tools for retrieving and managing
-athlete data, including activities, events, workouts, and wellness metrics.
+athlete data, including activities, events, workouts, training plans, and wellness metrics.
 
 Main Features:
     - Activity retrieval and detailed analysis
     - Event management (races, workouts, calendar items)
+    - Training plan creation and management
+    - Workout template management
     - Wellness data tracking and visualization
     - Error handling with user-friendly messages
     - Configurable parameters with environment variable support
@@ -21,14 +23,28 @@ Usage:
         $ python src/intervals_mcp_server/server.py
 
     MCP tools provided:
-        - get_activities
-        - get_activity_details
-        - get_events
-        - get_event_by_id
-        - get_wellness_data
-        - get_activity_intervals
-        - get_activity_streams
-        - add_events
+        Activities:
+            - get_activities
+            - get_activity_details
+            - get_activity_intervals
+            - get_activity_streams
+
+        Events (Calendar):
+            - get_events
+            - get_event_by_id
+            - add_or_update_event
+            - delete_event
+            - delete_events_by_date_range
+
+        Training Plans:
+            - create_training_plan
+            - add_workout_to_plan
+            - add_workouts_bulk
+            - get_training_plans
+            - delete_training_plan
+
+        Wellness:
+            - get_wellness_data
 
     See the README for more details on configuration and usage.
 """
@@ -84,6 +100,13 @@ from intervals_mcp_server.tools.events import (  # pylint: disable=wrong-import-
     get_events,
 )
 from intervals_mcp_server.tools.wellness import get_wellness_data  # pylint: disable=wrong-import-position  # noqa: E402
+from intervals_mcp_server.tools.plans import (  # pylint: disable=wrong-import-position  # noqa: E402
+    create_training_plan,
+    add_workout_to_plan,
+    add_workouts_bulk,
+    get_training_plans,
+    delete_training_plan,
+)
 
 # Re-export make_intervals_request and httpx_client for backward compatibility
 # pylint: disable=duplicate-code  # This __all__ list is intentionally similar to tools/__init__.py
@@ -100,6 +123,11 @@ __all__ = [
     "delete_events_by_date_range",
     "add_or_update_event",
     "get_wellness_data",
+    "create_training_plan",
+    "add_workout_to_plan",
+    "add_workouts_bulk",
+    "get_training_plans",
+    "delete_training_plan",
 ]
 
 
