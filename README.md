@@ -1,6 +1,6 @@
 # Intervals.icu MCP Server
 
-Model Context Protocol (MCP) server for connecting Claude and ChatGPT with the Intervals.icu API. It provides tools for authentication and data retrieval for activities, events, and wellness data.
+Model Context Protocol (MCP) server for connecting Claude and ChatGPT with the Intervals.icu API. It provides tools for authentication and data retrieval for activities, events, wellness data, and training plans.
 
 If you find the Model Context Protocol (MCP) server useful, please consider supporting its continued development with a donation.
 
@@ -157,16 +157,78 @@ If you observe the following error messages when you open Claude Desktop, includ
 
 3. Restart Claude Desktop.
 
-### 2. Use the MCP server with Claude
+### 2. Configure Claude Code CLI
+
+To use this server with Claude Code (CLI), you need to add it to your Claude Code configuration file.
+
+**Configuration file location:** `~/.claude.json`
+
+Add the MCP server configuration under the `"mcpServers"` key at the global (user) level:
+
+```json
+{
+  "mcpServers": {
+    "Intervals.icu": {
+      "type": "stdio",
+      "command": "/Users/<USERNAME>/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/path/to/intervals-mcp-server",
+        "run",
+        "--with",
+        "mcp[cli]",
+        "mcp",
+        "run",
+        "/path/to/intervals-mcp-server/src/intervals_mcp_server/server.py"
+      ],
+      "env": {
+        "API_KEY": "<YOUR_API_KEY>",
+        "ATHLETE_ID": "<YOUR_ATHLETE_ID>",
+        "INTERVALS_API_BASE_URL": "https://intervals.icu/api/v1",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}
+```
+
+**Notes:**
+- Replace `/path/to/intervals-mcp-server` with the actual path to your cloned repository
+- Replace `<YOUR_API_KEY>` and `<YOUR_ATHLETE_ID>` with your credentials
+- Find the path to `uv` by running `which uv` in your terminal
+- This global configuration makes the server available to all your projects
+- Restart Claude Code CLI after making changes to the configuration
+
+**Alternative: Project-level configuration**
+
+You can also configure the MCP server for specific projects by adding the configuration under `"projects"["<project-path>"]["mcpServers"]` in `~/.claude.json`. However, using the global configuration (shown above) is recommended as it makes the server available across all your projects.
+
+### 3. Use the MCP server with Claude
 
 Once the server is running and Claude Desktop is configured, you can use the following tools to ask questions about your past and future activities, events, and wellness data.
 
+**Activities:**
 - `get_activities`: Retrieve a list of activities
 - `get_activity_details`: Get detailed information for a specific activity
 - `get_activity_intervals`: Get detailed interval data for a specific activity
-- `get_wellness_data`: Fetch wellness data
+- `get_activity_streams`: Get activity stream data (power, heart rate, cadence, etc.)
+
+**Events (Calendar):**
 - `get_events`: Retrieve upcoming events (workouts, races, etc.)
 - `get_event_by_id`: Get detailed information for a specific event
+- `add_or_update_event`: Create or update a calendar event
+- `delete_event`: Delete a specific event
+- `delete_events_by_date_range`: Delete multiple events within a date range
+
+**Training Plans:**
+- `create_training_plan`: Create a new training plan folder
+- `add_workout_to_plan`: Add a single workout template to a plan
+- `add_workouts_bulk`: Add multiple workout templates efficiently
+- `get_training_plans`: List all training plans
+- `delete_training_plan`: Delete a training plan and its workouts
+
+**Wellness:**
+- `get_wellness_data`: Fetch wellness data (sleep, HRV, weight, etc.)
 
 ## Usage with ChatGPT
 
