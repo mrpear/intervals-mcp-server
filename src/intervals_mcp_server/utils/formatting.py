@@ -41,7 +41,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
     _add_field(lines, "Elevation Loss", activity.get("total_elevation_loss"), " meters")
 
     # Power Data
-    power_lines = []
+    power_lines: list[str] = []
     avg_power = activity.get("avgPower") or activity.get("icu_average_watts") or activity.get("average_watts")
     _add_field(power_lines, "Average Power", avg_power, " watts")
     _add_field(power_lines, "Weighted Avg Power", activity.get("icu_weighted_avg_watts"), " watts")
@@ -57,7 +57,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
         lines.extend(power_lines)
 
     # Heart Rate Data
-    hr_lines = []
+    hr_lines: list[str] = []
     avg_hr = activity.get("avgHr") or activity.get("average_heartrate")
     _add_field(hr_lines, "Average Heart Rate", avg_hr, " bpm")
     _add_field(hr_lines, "Max Heart Rate", activity.get("max_heartrate"), " bpm")
@@ -70,7 +70,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
         lines.extend(hr_lines)
 
     # Other Metrics
-    other_lines = []
+    other_lines: list[str] = []
     _add_field(other_lines, "Cadence", activity.get("average_cadence"), " rpm")
     _add_field(other_lines, "Calories", activity.get("calories"))
     _add_field(other_lines, "Average Speed", activity.get("average_speed"), " m/s")
@@ -95,7 +95,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
         lines.extend(other_lines)
 
     # Environment
-    env_lines = []
+    env_lines: list[str] = []
     if activity.get("trainer") is not None:
         _add_field(env_lines, "Trainer", activity.get("trainer"))
     _add_field(env_lines, "Average Temp", activity.get("average_temp"), "°C")
@@ -110,7 +110,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
         lines.extend(env_lines)
 
     # Training Metrics
-    training_lines = []
+    training_lines: list[str] = []
     _add_field(training_lines, "Fitness (CTL)", activity.get("icu_ctl"))
     _add_field(training_lines, "Fatigue (ATL)", activity.get("icu_atl"))
     _add_field(training_lines, "TRIMP", activity.get("trimp"))
@@ -126,7 +126,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
         lines.extend(training_lines)
 
     # Device Info
-    device_lines = []
+    device_lines: list[str] = []
     _add_field(device_lines, "Device", activity.get("device_name"))
     _add_field(device_lines, "Power Meter", activity.get("power_meter"))
     _add_field(device_lines, "File Type", activity.get("file_type"))
