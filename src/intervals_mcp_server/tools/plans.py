@@ -4,7 +4,6 @@ Training plan-related MCP tools for Intervals.icu.
 This module contains tools for creating, managing, and deleting training plans.
 """
 
-import json
 from typing import Any
 
 from intervals_mcp_server.api.client import make_intervals_request
@@ -264,7 +263,7 @@ async def add_workouts_bulk(
         count = len(result)
         total_duration_mins = sum(w.get("moving_time", 0) for w in result) // 60
         return f"✓ Added {count} workouts in bulk (Total duration: {total_duration_mins}min)"
-    return f"✓ Added workouts in bulk"
+    return "✓ Added workouts in bulk"
 
 
 @mcp.tool()
