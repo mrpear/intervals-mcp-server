@@ -97,6 +97,15 @@ isort.known-third-party = ["starlette"]
 # Unlike Flake8, default to a complexity level of 10.
 mccabe.max-complexity = 10
 
+[tool.mypy]
+# Global mypy settings
+
+[[tool.mypy.overrides]]
+# Disable union-attr errors for tool modules
+# The mcp instance is initialized before tools are registered, but mypy can't track this
+module = "intervals_mcp_server.tools.*"
+disable_error_code = ["union-attr"]
+
 [tool.typos]
 default.check-filename = true
 default.check-file = true
