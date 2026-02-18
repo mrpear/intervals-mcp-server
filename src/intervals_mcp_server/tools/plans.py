@@ -142,6 +142,7 @@ async def add_workout_to_plan(
         from intervals_mcp_server.utils.types import WorkoutDoc as WorkoutDocType
 
         # Convert to WorkoutDoc object if it's a dict
+        workout_doc_dict: dict[str, Any]
         if isinstance(workout_doc, dict):
             workout_doc_obj = WorkoutDocType.from_dict(workout_doc)
             workout_doc_dict = workout_doc
