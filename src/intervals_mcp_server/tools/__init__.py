@@ -21,11 +21,17 @@ from intervals_mcp_server.tools.events import (  # noqa: F401
     get_event_by_id,
     get_events,
 )
-from intervals_mcp_server.tools.wellness import get_wellness_data  # noqa: F401
+from intervals_mcp_server.tools.wellness import (  # noqa: F401
+    get_wellness_data,
+    update_wellness_data,
+)
 from intervals_mcp_server.tools.performance import (  # noqa: F401
     get_power_curves,
     get_hr_curves,
     get_pace_curves,
+)
+from intervals_mcp_server.tools.snapshot import (  # noqa: F401
+    get_latest_snapshot,
 )
 
 
@@ -57,7 +63,9 @@ __all__ = [
     "delete_events_by_date_range",
     "add_or_update_event",
     "get_wellness_data",
+    "update_wellness_data",
     "get_power_curves",
     "get_hr_curves",
     "get_pace_curves",
+    "get_latest_snapshot",
 ]

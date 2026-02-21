@@ -9,7 +9,7 @@ The codebase follows a modular architecture:
 - **MCP Tools**: Organized by domain in `src/intervals_mcp_server/tools/`:
   - `activities.py` - Activity retrieval and analysis
   - `events.py` - Calendar event management
-  - `wellness.py` - Wellness data retrieval
+  - `wellness.py` - Wellness data retrieval and updates
   - `plans.py` - Training plan management
   - `performance.py` - Athlete performance data retrieval
   - `__init__.py` - Tool registration and exports
@@ -36,9 +36,9 @@ The codebase follows a modular architecture:
 
 ## Testing Instructions
 - Run unit tests with `pytest` from the repository root.
-- Ensure linting passes with `ruff .` (no configuration file means default rules).
+- Ensure linting passes with `ruff check .`.
 - Run static type checks using `mypy src tests`.
-- All three steps (`ruff`, `mypy`, and `pytest`) should succeed before committing.
+- All three steps (`ruff check`, `mypy`, and `pytest`) should succeed before committing.
 
 ## PR Instructions
 - Use concise commit messages.
