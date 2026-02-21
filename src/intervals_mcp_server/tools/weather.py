@@ -68,4 +68,26 @@ async def get_weather_forecast(
         weather_summary += f"   Provider: {provider}\n"
         weather_summary += f"   Status: {status}\n\n"
 
+        # Add daily forecast if available
+        daily = forecast.get("daily", [])
+        if daily:
+            weather_summary += "   📅 Daily Forecast (next 7 days):\n"
+            for day in daily[:7]:  # Show only next 7 days
+                date = day.get("id", "")
+                temp = day.get("temp", {})
+                temp_min = temp.get("min", 0)
+                temp_max = temp.get("max", 0)
+                weather_list = day.get("weather", [])
+                description = weather_list[0].get("description", "N/A") if weather_list else "N/A"
+                rain = day.get("rain", 0)
+                wind = day.get("wind_speed", 0)
+
+                weather_summary += f"      {date}: {description.capitalize()}\n"
+                weather_summary += f"         Temp: {temp_min:.1f}°C - {temp_max:.1f}°C"
+                if rain > 0:
+                    weather_summary += f", Rain: {rain:.1f}mm"
+                weather_summary += f", Wind: {wind:.1f}m/s\n"
+
+        weather_summary += "\n"
+
     return weather_summary
