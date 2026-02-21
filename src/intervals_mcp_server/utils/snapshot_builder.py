@@ -150,8 +150,8 @@ async def build_latest_snapshot(
 
     # Monotony and Strain (7-day window)
     try:
-        # Use 'or 0' to handle None values from wellness data
-        daily_loads = [w.get("loadToday") or 0 for w in wellness_data if w.get("id", "") >= start_date_7d and w.get("id", "") <= date_str]
+        # Use ctlLoad field from wellness data (daily TSS)
+        daily_loads = [w.get("ctlLoad") or 0 for w in wellness_data if w.get("id", "") >= start_date_7d and w.get("id", "") <= date_str]
         if daily_loads:
             monotony = calculate_monotony(daily_loads)
             # Fix division by zero: check if there are any loads > 0 before dividing
