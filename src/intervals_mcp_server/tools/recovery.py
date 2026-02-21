@@ -88,12 +88,6 @@ async def get_recovery_metrics(
     if not today_wellness:
         return f"No wellness data found for {date}"
 
-    # Calculate baselines (7-day average excluding today)
-    baseline_data = [
-        item for item in wellness_data
-        if item.get('id', '') < date
-    ]
-
     # Note: API may return 'hrv', 'hrvRMSSD', or 'hrvSDNN' - check all three
     # Priority: hrv > hrvRMSSD > hrvSDNN
     hrv_field = None
@@ -105,8 +99,11 @@ async def get_recovery_metrics(
     if not hrv_field:
         return f"No HRV data found for {date}"
 
-    hrv_baseline = calculate_baseline(baseline_data, hrv_field, baseline_days=7)
-    rhr_baseline = calculate_baseline(baseline_data, 'restingHR', baseline_days=7)
+    # Calculate baselines (7-day average excluding today)
+    # Pass end_date=date to exclude today from baseline calculation
+    # Outlier filtering is enabled by default
+    hrv_baseline = calculate_baseline(wellness_data, hrv_field, baseline_days=7, end_date=date)
+    rhr_baseline = calculate_baseline(wellness_data, 'restingHR', baseline_days=7, end_date=date)
 
     # Get today's values
     hrv_today = today_wellness.get(hrv_field)
