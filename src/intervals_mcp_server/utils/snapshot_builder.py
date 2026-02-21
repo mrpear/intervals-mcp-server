@@ -140,60 +140,84 @@ async def build_latest_snapshot(
                 derived_metrics["recovery_index_error"] = f"Calculation error: {str(e)}"
 
     # ACWR
-    if today_wellness.get("atl") and today_wellness.get("ctl"):
-        acwr = calculate_acwr(today_wellness["atl"], today_wellness["ctl"])
-        derived_metrics["acwr"] = round(acwr, 2)
+    try:
+        if today_wellness.get("atl") and today_wellness.get("ctl"):
+            acwr = calculate_acwr(today_wellness["atl"], today_wellness["ctl"])
+            derived_metrics["acwr"] = round(acwr, 2)
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["acwr"] = None
+        derived_metrics["acwr_error"] = f"Calculation error: {str(e)}"
 
     # Monotony and Strain (7-day window)
-    daily_loads = [w.get("loadToday", 0) for w in wellness_data if w.get("id", "") >= start_date_7d and w.get("id", "") <= date_str]
-    if daily_loads:
-        monotony = calculate_monotony(daily_loads)
-        mean_load = sum([l for l in daily_loads if l > 0]) / len([l for l in daily_loads if l > 0]) if daily_loads else 0
-        strain = calculate_strain(monotony, mean_load)
-        derived_metrics["monotony"] = round(monotony, 2)
-        derived_metrics["strain"] = round(strain, 1)
+    try:
+        # Use 'or 0' to handle None values from wellness data
+        daily_loads = [w.get("loadToday") or 0 for w in wellness_data if w.get("id", "") >= start_date_7d and w.get("id", "") <= date_str]
+        if daily_loads:
+            monotony = calculate_monotony(daily_loads)
+            # Fix division by zero: check if there are any loads > 0 before dividing
+            loads_above_zero = [l for l in daily_loads if l > 0]
+            mean_load = sum(loads_above_zero) / len(loads_above_zero) if loads_above_zero else 0
+            strain = calculate_strain(monotony, mean_load)
+            derived_metrics["monotony"] = round(monotony, 2)
+            derived_metrics["strain"] = round(strain, 1)
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["monotony"] = None
+        derived_metrics["strain"] = None
+        derived_metrics["load_metrics_error"] = f"Calculation error: {str(e)}"
 
     # Zone Distribution (7d and 28d)
-    zone_times_7d = aggregate_zone_times(activities_7d, "power")
-    zone_times_28d = aggregate_zone_times(activities_28d, "power")
+    try:
+        zone_times_7d = aggregate_zone_times(activities_7d, "power")
+        zone_times_28d = aggregate_zone_times(activities_28d, "power")
 
-    if zone_times_7d:
-        pi_7d = calculate_polarization_index(zone_times_7d)
-        tid_7d = calculate_3zone_distribution(zone_times_7d)
-        derived_metrics["polarization_index_7d"] = round(pi_7d, 2)
-        derived_metrics["seiler_tid_7d"] = {k: round(v, 1) for k, v in tid_7d.items()}
+        if zone_times_7d:
+            pi_7d = calculate_polarization_index(zone_times_7d)
+            tid_7d = calculate_3zone_distribution(zone_times_7d)
+            derived_metrics["polarization_index_7d"] = round(pi_7d, 2)
+            derived_metrics["seiler_tid_7d"] = {k: round(v, 1) for k, v in tid_7d.items()}
 
-    if zone_times_28d:
-        pi_28d = calculate_polarization_index(zone_times_28d)
-        tid_28d = calculate_3zone_distribution(zone_times_28d)
-        derived_metrics["polarization_index_28d"] = round(pi_28d, 2)
-        derived_metrics["seiler_tid_28d"] = {k: round(v, 1) for k, v in tid_28d.items()}
+        if zone_times_28d:
+            pi_28d = calculate_polarization_index(zone_times_28d)
+            tid_28d = calculate_3zone_distribution(zone_times_28d)
+            derived_metrics["polarization_index_28d"] = round(pi_28d, 2)
+            derived_metrics["seiler_tid_28d"] = {k: round(v, 1) for k, v in tid_28d.items()}
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["zone_distribution_error"] = f"Calculation error: {str(e)}"
 
     # TID Drift
-    if "seiler_tid_7d" in derived_metrics and "seiler_tid_28d" in derived_metrics:
-        tid_comparison = calculate_tid_comparison(
-            derived_metrics["seiler_tid_7d"],
-            derived_metrics["seiler_tid_28d"],
-        )
-        derived_metrics["tid_drift"] = tid_comparison["drift_classification"]
-        derived_metrics["tid_comparison"] = tid_comparison
+    try:
+        if "seiler_tid_7d" in derived_metrics and "seiler_tid_28d" in derived_metrics:
+            tid_comparison = calculate_tid_comparison(
+                derived_metrics["seiler_tid_7d"],
+                derived_metrics["seiler_tid_28d"],
+            )
+            derived_metrics["tid_drift"] = tid_comparison["drift_classification"]
+            derived_metrics["tid_comparison"] = tid_comparison
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["tid_drift_error"] = f"Calculation error: {str(e)}"
 
     # Aggregate Durability
-    durability_7d = calculate_aggregate_durability(activities_7d, min_duration_minutes=60)
-    durability_28d = calculate_aggregate_durability(activities_28d, min_duration_minutes=60)
+    try:
+        durability_7d = calculate_aggregate_durability(activities_7d, min_duration_minutes=60)
+        durability_28d = calculate_aggregate_durability(activities_28d, min_duration_minutes=60)
 
-    derived_metrics["durability_7d"] = durability_7d
-    derived_metrics["durability_28d"] = durability_28d
+        derived_metrics["durability_7d"] = durability_7d
+        derived_metrics["durability_28d"] = durability_28d
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["durability_error"] = f"Calculation error: {str(e)}"
 
     # Phase Detection
-    if today_wellness.get("ctl") and today_wellness.get("atl") and today_wellness.get("tsb"):
-        phase = detect_training_phase(
-            ctl=today_wellness["ctl"],
-            atl=today_wellness["atl"],
-            tsb=today_wellness["tsb"],
-        )
-        derived_metrics["phase_detected"] = phase
-        derived_metrics["phase_interpretation"] = interpret_training_phase(phase)
+    try:
+        if today_wellness.get("ctl") and today_wellness.get("atl") and today_wellness.get("tsb"):
+            phase = detect_training_phase(
+                ctl=today_wellness["ctl"],
+                atl=today_wellness["atl"],
+                tsb=today_wellness["tsb"],
+            )
+            derived_metrics["phase_detected"] = phase
+            derived_metrics["phase_interpretation"] = interpret_training_phase(phase)
+    except (ZeroDivisionError, TypeError) as e:
+        derived_metrics["phase_detection_error"] = f"Calculation error: {str(e)}"
 
     # Generate Alerts
     alerts = generate_alerts(derived_metrics)
@@ -245,7 +269,11 @@ async def build_latest_snapshot(
                 "date": w.get("id"),
                 "ctl": w.get("ctl"),
                 "atl": w.get("atl"),
-                "tsb": w.get("tsb"),
+                # Calculate TSB from CTL - ATL if not present
+                "tsb": (
+                    w.get("tsb") if w.get("tsb") is not None
+                    else (w["ctl"] - w["atl"] if "ctl" in w and "atl" in w and w["ctl"] is not None and w["atl"] is not None else None)
+                ),
                 "hrv": w.get(hrv_field) if hrv_field else None,
                 "resting_hr": w.get("restingHR"),
             }

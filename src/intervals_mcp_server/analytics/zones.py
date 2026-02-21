@@ -20,9 +20,17 @@ def aggregate_zone_times(activities: list[dict[str, Any]], zone_type: str = "pow
     zone_totals: dict[int, int] = {}
 
     for activity in activities:
+        # Skip empty/None activities
+        if not activity:
+            continue
+
         if zone_type == "power":
             # Power zones: icu_zone_times array
-            zone_times = activity.get("icu_zone_times", [])
+            # Use 'or []' to handle None values
+            zone_times = activity.get("icu_zone_times") or []
+            if not isinstance(zone_times, list):
+                continue
+
             for zone in zone_times:
                 if isinstance(zone, dict):
                     zone_id = zone.get("id", "")
@@ -36,7 +44,8 @@ def aggregate_zone_times(activities: list[dict[str, Any]], zone_type: str = "pow
                             pass
         elif zone_type == "hr":
             # HR zones: icu_hr_zone_times simple array [z1, z2, z3, ...]
-            zone_times = activity.get("icu_hr_zone_times", [])
+            # Use 'or []' to handle None values
+            zone_times = activity.get("icu_hr_zone_times") or []
             if isinstance(zone_times, list):
                 for zone_num, seconds in enumerate(zone_times, start=1):
                     if seconds > 0:
