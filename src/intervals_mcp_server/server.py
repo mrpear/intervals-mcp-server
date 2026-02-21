@@ -66,6 +66,9 @@ Usage:
         Durability:
             - get_durability_metrics
 
+        Snapshots:
+            - get_latest_snapshot
+
     See the README for more details on configuration and usage.
 """
 
@@ -137,6 +140,7 @@ from intervals_mcp_server.tools.recovery import get_recovery_metrics  # pylint: 
 from intervals_mcp_server.tools.load import get_load_metrics  # pylint: disable=wrong-import-position  # noqa: E402
 from intervals_mcp_server.tools.zones import get_zone_distribution  # pylint: disable=wrong-import-position  # noqa: E402
 from intervals_mcp_server.tools.durability import get_durability_metrics  # pylint: disable=wrong-import-position  # noqa: E402
+from intervals_mcp_server.tools.snapshot import get_latest_snapshot  # pylint: disable=wrong-import-position  # noqa: E402
 
 # Re-export make_intervals_request and httpx_client for backward compatibility
 # pylint: disable=duplicate-code  # This __all__ list is intentionally similar to tools/__init__.py
@@ -166,6 +170,7 @@ __all__ = [
     "get_load_metrics",
     "get_zone_distribution",
     "get_durability_metrics",
+    "get_latest_snapshot",
 ]
 
 

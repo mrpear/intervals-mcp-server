@@ -235,6 +235,16 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 - `get_hr_curves`: Get athlete heart rate data showing peak efforts across different durations
 - `get_pace_curves`: Get athlete pace data showing best performances across different distances
 
+**Fitness & Load Management:**
+- `get_fitness_data`: Get CTL, ATL, and TSB (Training Stress Balance) metrics
+- `get_recovery_metrics`: Calculate Recovery Index and ACWR for readiness assessment
+- `get_load_metrics`: Analyze training monotony, strain, and load-recovery ratio
+- `get_zone_distribution`: Analyze time in training zones and polarization patterns
+- `get_durability_metrics`: Assess aerobic durability through Pw:HR decoupling analysis
+
+**Training Snapshots:**
+- `get_latest_snapshot`: Get comprehensive training snapshot with pre-calculated metrics including Recovery Index, ACWR, Monotony, Strain, Zone Distribution, Seiler TID, Durability metrics, Phase Detection, and Graduated Alerts - all in a single call optimized for coaching decisions
+
 ## Usage with ChatGPT
 
 ChatGPT’s beta MCP connectors can also talk to this server over the SSE transport.

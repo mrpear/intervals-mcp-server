@@ -27,6 +27,9 @@ from intervals_mcp_server.tools.performance import (  # noqa: F401
     get_hr_curves,
     get_pace_curves,
 )
+from intervals_mcp_server.tools.snapshot import (  # noqa: F401
+    get_latest_snapshot,
+)
 
 
 def register_tools(mcp_instance: FastMCP) -> None:
@@ -60,4 +63,5 @@ __all__ = [
     "get_power_curves",
     "get_hr_curves",
     "get_pace_curves",
+    "get_latest_snapshot",
 ]

@@ -183,3 +183,62 @@ def interpret_variability_index(vi: float) -> str:
         return "Moderately steady effort"
     else:
         return "Variable effort"
+
+
+def calculate_aggregate_durability(
+    activities: list[dict[str, Any]],
+    min_duration_minutes: int = 60,
+) -> dict[str, Any]:
+    """Calculate aggregate durability metrics across multiple activities.
+
+    Aggregates decoupling data from activities that meet minimum duration
+    requirements to assess overall aerobic durability.
+
+    Args:
+        activities: List of activity dictionaries with decoupling data
+        min_duration_minutes: Minimum activity duration to include (default: 60 min)
+
+    Returns:
+        Dictionary with aggregate durability metrics:
+        - mean_decoupling: Average decoupling across qualifying activities
+        - activities_analyzed: Number of activities included
+        - interpretation: Overall durability assessment
+    """
+    decoupling_values = []
+
+    for activity in activities:
+        # Check if activity has required data
+        moving_time = activity.get("moving_time", 0)
+        duration_minutes = moving_time / 60 if moving_time else 0
+
+        # Skip activities that are too short
+        if duration_minutes < min_duration_minutes:
+            continue
+
+        # Check if decoupling data exists
+        decoupling = activity.get("pw_hr_decoupling")
+        if decoupling is not None:
+            decoupling_values.append(abs(decoupling))  # Use absolute value
+
+    if not decoupling_values:
+        return {
+            "mean_decoupling": None,
+            "activities_analyzed": 0,
+            "interpretation": "Insufficient data for durability assessment",
+        }
+
+    mean_decoupling = sum(decoupling_values) / len(decoupling_values)
+
+    # Interpret aggregate durability
+    if mean_decoupling < 5:
+        interpretation = "Excellent aerobic durability"
+    elif mean_decoupling < 10:
+        interpretation = "Good aerobic durability"
+    else:
+        interpretation = "Poor aerobic durability - focus on base building"
+
+    return {
+        "mean_decoupling": round(mean_decoupling, 1),
+        "activities_analyzed": len(decoupling_values),
+        "interpretation": interpretation,
+    }
