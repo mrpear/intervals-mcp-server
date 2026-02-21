@@ -182,3 +182,6 @@ TODO
 .gitconfig
 .claude/
 .idea/
+
+# Debug/test scripts
+debug/

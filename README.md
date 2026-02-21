@@ -229,11 +229,23 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 
 **Wellness:**
 - `get_wellness_data`: Fetch wellness data (sleep, HRV, weight, etc.)
+- `update_wellness_data`: Update wellness data for a specific date (weight, resting HR, HRV, sleep, subjective metrics, etc.)
 
 **Athlete Performance:**
 - `get_power_curves`: Get athlete power data showing best outputs across different durations
 - `get_hr_curves`: Get athlete heart rate data showing peak efforts across different durations
 - `get_pace_curves`: Get athlete pace data showing best performances across different distances
+
+**Fitness & Load Management:**
+- `get_fitness_data`: Get CTL, ATL, and TSB (Training Stress Balance) metrics
+- `get_recovery_metrics`: Calculate Recovery Index and ACWR for readiness assessment
+- `get_load_metrics`: Analyze training monotony, strain, and load-recovery ratio
+- `get_zone_distribution`: Analyze time in training zones and polarization patterns
+- `get_durability_metrics`: Assess aerobic durability through Pw:HR decoupling analysis
+
+**Training Snapshots:**
+- `get_latest_snapshot`: Get comprehensive training snapshot with pre-calculated metrics including Recovery Index, ACWR, Monotony, Strain, Zone Distribution, Seiler TID, Durability metrics, Phase Detection, and Graduated Alerts - all in a single call optimized for coaching decisions
+- `get_history_snapshot`: Get longitudinal training history with tiered time resolution (90-day daily, 180-day weekly, 1/2/3-year monthly aggregates) including FTP timeline, weight progression, data gaps, and phase markers for periodization planning and long-term trend analysis. Supports `tiers` parameter to split large datasets: `recent` (~20KB), `monthly` (~12KB), `daily` (~13KB), `weekly` (~6KB), or `all` (~59KB)
 
 ## Usage with ChatGPT
 
