@@ -215,8 +215,8 @@ def calculate_aggregate_durability(
         if duration_minutes < min_duration_minutes:
             continue
 
-        # Check if decoupling data exists
-        decoupling = activity.get("pw_hr_decoupling")
+        # Check if decoupling data exists (Intervals.icu uses 'decoupling' field)
+        decoupling = activity.get("decoupling") or activity.get("pw_hr_decoupling")
         if decoupling is not None:
             decoupling_values.append(abs(decoupling))  # Use absolute value
 
