@@ -4,6 +4,8 @@ Weather-related MCP tools for Intervals.icu.
 This module contains tools for retrieving weather forecast information.
 """
 
+from datetime import datetime
+
 from intervals_mcp_server.api.client import make_intervals_request
 from intervals_mcp_server.config import get_config
 from intervals_mcp_server.utils.validation import resolve_athlete_id
@@ -73,7 +75,7 @@ async def get_weather_forecast(
         if daily:
             weather_summary += "   📅 Daily Forecast (next 7 days):\n"
             for day in daily[:7]:  # Show only next 7 days
-                date = day.get("id", "")
+                date_str = day.get("id", "")
                 temp = day.get("temp", {})
                 temp_min = temp.get("min", 0)
                 temp_max = temp.get("max", 0)
@@ -82,7 +84,15 @@ async def get_weather_forecast(
                 rain = day.get("rain", 0)
                 wind = day.get("wind_speed", 0)
 
-                weather_summary += f"      {date}: {description.capitalize()}\n"
+                # Parse date and get day of week
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    day_of_week = date_obj.strftime("%A")
+                    formatted_date = f"{day_of_week}, {date_str}"
+                except (ValueError, AttributeError):
+                    formatted_date = date_str
+
+                weather_summary += f"      {formatted_date}: {description.capitalize()}\n"
                 weather_summary += f"         Temp: {temp_min:.1f}°C - {temp_max:.1f}°C"
                 if rain > 0:
                     weather_summary += f", Rain: {rain:.1f}mm"
