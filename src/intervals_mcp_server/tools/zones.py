@@ -1,7 +1,6 @@
 """Training zone distribution analysis tools."""
 
 from datetime import datetime, timedelta
-from typing import Any
 
 from intervals_mcp_server.api.client import make_intervals_request
 from intervals_mcp_server.config import get_config
@@ -115,7 +114,7 @@ async def get_zone_distribution(
     # Format output
     output = [f"Zone Distribution Analysis ({start_date} to {end_date}):\n"]
 
-    output.append(f"Training Summary:")
+    output.append("Training Summary:")
     output.append(f"  Activities analyzed: {len(activities_with_zones)}")
     output.append(f"  Total time: {total_hours:.1f} hours")
     output.append(f"  Zone type: {zone_type.upper()}")

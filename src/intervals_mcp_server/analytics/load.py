@@ -1,7 +1,6 @@
 """Training load analysis metrics."""
 
 import statistics
-from typing import Any
 
 
 def calculate_monotony(daily_loads: list[float]) -> float:

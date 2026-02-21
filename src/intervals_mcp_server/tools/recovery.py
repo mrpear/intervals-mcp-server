@@ -52,7 +52,7 @@ async def get_recovery_metrics(
 
     # Calculate date ranges
     date_obj = datetime.fromisoformat(date)
-    start_date_wellness = (date_obj - timedelta(days=14)).strftime("%Y-%m-%d")
+    (date_obj - timedelta(days=14)).strftime("%Y-%m-%d")
     start_date_fitness = (date_obj - timedelta(days=42)).strftime("%Y-%m-%d")
 
     # Fetch wellness data (includes both wellness and fitness metrics: CTL, ATL, TSB)

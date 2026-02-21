@@ -112,7 +112,7 @@ def _calculate_average_pw_hr_ratio(power_data: list[float], hr_data: list[float]
         Average Pw:HR ratio
     """
     ratios = []
-    for power, hr in zip(power_data, hr_data):
+    for power, hr in zip(power_data, hr_data, strict=False):
         if power > 0 and hr > 0:
             ratios.append(power / hr)
 

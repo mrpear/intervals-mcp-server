@@ -1,7 +1,6 @@
 """Training load analysis tools."""
 
 from datetime import datetime, timedelta
-from typing import Any
 import statistics
 from collections import defaultdict
 
@@ -13,10 +12,6 @@ from intervals_mcp_server.analytics.load import (
     calculate_strain,
     interpret_monotony,
     interpret_strain,
-    calculate_load_recovery_ratio,
-    interpret_load_recovery_ratio,
-    calculate_consistency_index,
-    interpret_consistency_index,
 )
 from intervals_mcp_server.mcp_instance import mcp
 
@@ -88,7 +83,7 @@ async def get_load_metrics(
     daily_loads = []
     current_date = datetime.fromisoformat(start_date)
 
-    for i in range(window_days):
+    for _ in range(window_days):
         date_str = current_date.strftime("%Y-%m-%d")
         daily_loads.append(daily_loads_dict.get(date_str, 0.0))
         current_date += timedelta(days=1)

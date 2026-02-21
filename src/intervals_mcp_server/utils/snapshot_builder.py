@@ -104,7 +104,7 @@ async def build_latest_snapshot(
     )
 
     # Calculate baseline data (7-day average excluding today)
-    baseline_data = [item for item in wellness_data if item.get("id", "") < date_str]
+    [item for item in wellness_data if item.get("id", "") < date_str]
 
     # Detect HRV field
     hrv_field = None
@@ -155,7 +155,7 @@ async def build_latest_snapshot(
         if daily_loads:
             monotony = calculate_monotony(daily_loads)
             # Fix division by zero: check if there are any loads > 0 before dividing
-            loads_above_zero = [l for l in daily_loads if l > 0]
+            loads_above_zero = [load for load in daily_loads if load > 0]
             mean_load = sum(loads_above_zero) / len(loads_above_zero) if loads_above_zero else 0
             strain = calculate_strain(monotony, mean_load)
             derived_metrics["monotony"] = round(monotony, 2)

@@ -13,6 +13,18 @@ from intervals_mcp_server.analytics.zones import (
 )
 
 
+def remove_null_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """Remove None/null fields from dictionary to reduce JSON size.
+
+    Args:
+        data: Dictionary with potential null values
+
+    Returns:
+        Dictionary with null values removed
+    """
+    return {k: v for k, v in data.items() if v is not None}
+
+
 async def build_history_snapshot(
     athlete_id: str,
     api_key: str | None = None,
@@ -179,7 +191,8 @@ def build_daily_tier(
             "phase": phase
         }
 
-        daily_data.append(daily_entry)
+        # Remove null fields to reduce size
+        daily_data.append(remove_null_fields(daily_entry))
 
     return daily_data
 
@@ -274,7 +287,8 @@ def build_weekly_tier(
             "phase": phase
         }
 
-        weekly_data.append(weekly_entry)
+        # Remove null fields to reduce size
+        weekly_data.append(remove_null_fields(weekly_entry))
 
     return weekly_data
 
@@ -361,7 +375,8 @@ def build_monthly_tier(
             "phase": phase
         }
 
-        monthly_data.append(monthly_entry)
+        # Remove null fields to reduce size
+        monthly_data.append(remove_null_fields(monthly_entry))
 
     return monthly_data
 
@@ -393,14 +408,14 @@ def extract_ftp_timeline(
 
                 # Only record if FTP changed
                 if ftp and ftp != prev_ftp:
-                    ftp_changes.append({
+                    ftp_changes.append(remove_null_fields({
                         "date": entry.get("id"),
                         "ftp": ftp,
                         "weight": weight,
                         "w_kg": round(ftp / weight, 2) if weight and weight > 0 else None,
                         "test_type": "Auto-calculated",
                         "source": "wellness"
-                    })
+                    }))
                     prev_ftp = ftp
 
     # Sort by date
@@ -536,16 +551,19 @@ def detect_phase_markers(
     Returns:
         List of phase marker entries
     """
-    # Simplified implementation - detect phase changes in CTL trends
+    # Detect phase changes with minimum 14-day duration to filter noise
     phase_markers: list[dict[str, Any]] = []
 
     if not wellness:
         return phase_markers
 
+    MIN_PHASE_DURATION_DAYS = 14
+
     current_phase = None
     phase_start = None
+    phase_start_index = 0
 
-    for entry in wellness:
+    for i, entry in enumerate(wellness):
         if entry.get("ctl") and entry.get("atl"):
             tsb = entry["ctl"] - entry["atl"]
             phase = detect_training_phase(
@@ -556,25 +574,32 @@ def detect_phase_markers(
 
             # Detect phase change
             if phase != current_phase:
-                # Save previous phase if it existed
+                # Check if previous phase lasted long enough
                 if current_phase and phase_start:
-                    phase_markers.append({
-                        "start_date": phase_start,
-                        "end_date": entry.get("id"),
-                        "phase": current_phase
-                    })
+                    phase_duration_days = i - phase_start_index
+                    if phase_duration_days >= MIN_PHASE_DURATION_DAYS:
+                        phase_markers.append({
+                            "start_date": phase_start,
+                            "end_date": entry.get("id"),
+                            "phase": current_phase,
+                            "duration_days": phase_duration_days
+                        })
 
                 # Start new phase
                 current_phase = phase
                 phase_start = entry.get("id")
+                phase_start_index = i
 
-    # Add final phase
+    # Add final phase if long enough
     if current_phase and phase_start and wellness:
-        phase_markers.append({
-            "start_date": phase_start,
-            "end_date": wellness[-1].get("id"),
-            "phase": current_phase
-        })
+        phase_duration_days = len(wellness) - phase_start_index
+        if phase_duration_days >= MIN_PHASE_DURATION_DAYS:
+            phase_markers.append({
+                "start_date": phase_start,
+                "end_date": wellness[-1].get("id"),
+                "phase": current_phase,
+                "duration_days": phase_duration_days
+            })
 
     return phase_markers
 
@@ -597,7 +622,7 @@ def generate_historical_summary(
         Summary statistics dictionary
     """
     # Activity dates
-    activity_dates = set(a.get("start_date_local", "")[:10] for a in activities if a.get("start_date_local"))
+    activity_dates = {a.get("start_date_local", "")[:10] for a in activities if a.get("start_date_local")}
 
     total_activities = len(activities)
     total_hours = sum(a.get("moving_time", 0) for a in activities) / 3600
