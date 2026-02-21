@@ -229,6 +229,7 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 
 **Wellness:**
 - `get_wellness_data`: Fetch wellness data (sleep, HRV, weight, etc.)
+- `update_wellness_data`: Update wellness data for a specific date (weight, resting HR, HRV, sleep, subjective metrics, etc.)
 
 **Athlete Performance:**
 - `get_power_curves`: Get athlete power data showing best outputs across different durations
