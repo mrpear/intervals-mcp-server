@@ -244,6 +244,7 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 
 **Training Snapshots:**
 - `get_latest_snapshot`: Get comprehensive training snapshot with pre-calculated metrics including Recovery Index, ACWR, Monotony, Strain, Zone Distribution, Seiler TID, Durability metrics, Phase Detection, and Graduated Alerts - all in a single call optimized for coaching decisions
+- `get_history_snapshot`: Get longitudinal training history with tiered time resolution (90-day daily, 180-day weekly, 1/2/3-year monthly aggregates) including FTP timeline, weight progression, data gaps, and phase markers for periodization planning and long-term trend analysis
 
 ## Usage with ChatGPT
 
