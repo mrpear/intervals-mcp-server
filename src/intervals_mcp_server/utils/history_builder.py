@@ -29,6 +29,7 @@ async def build_history_snapshot(
     athlete_id: str,
     api_key: str | None = None,
     max_lookback_days: int = 1095,
+    tiers: str = "all",
 ) -> dict[str, Any]:
     """Build complete historical snapshot with tiered granularity.
 
@@ -36,6 +37,7 @@ async def build_history_snapshot(
         athlete_id: Intervals.icu athlete ID
         api_key: API key for authentication
         max_lookback_days: Maximum history to fetch (default: 1095 = 3 years)
+        tiers: Which data to include - "all", "recent", "monthly", "daily", or "weekly"
 
     Returns:
         Dictionary with historical data in Section 11 format
@@ -79,33 +81,41 @@ async def build_history_snapshot(
     activities.sort(key=lambda x: x.get("start_date_local", ""))
     wellness_data.sort(key=lambda x: x.get("id", ""))
 
-    # Build tiered aggregations
-    tier_90d = build_daily_tier(activities, wellness_data, days=90)
-    tier_180d = build_weekly_tier(activities, wellness_data, days=180)
-    tier_1y = build_monthly_tier(activities, wellness_data, days=365)
-    tier_2y = build_monthly_tier(activities, wellness_data, days=730)
-    tier_3y = build_monthly_tier(activities, wellness_data, days=1095)
+    # Determine which tiers to build based on request
+    include_daily = tiers in ("all", "recent", "daily")
+    include_weekly = tiers in ("all", "recent", "weekly")
+    include_monthly = tiers in ("all", "monthly")
+    include_extras = tiers in ("all", "monthly")  # FTP, weight, phase markers
 
-    # Extract timelines
-    ftp_timeline = extract_ftp_timeline(activities, wellness_data)
-    weight_progression = extract_weight_progression(wellness_data)
+    # Build requested tiered aggregations
+    tier_90d = build_daily_tier(activities, wellness_data, days=90) if include_daily else []
+    tier_180d = build_weekly_tier(activities, wellness_data, days=180) if include_weekly else []
+    tier_1y = build_monthly_tier(activities, wellness_data, days=365) if include_monthly else []
+    tier_2y = build_monthly_tier(activities, wellness_data, days=730) if include_monthly else []
+    tier_3y = build_monthly_tier(activities, wellness_data, days=1095) if include_monthly else []
 
-    # Detect patterns
-    data_gaps = detect_data_gaps(activities, start_date, end_date)
-    phase_markers = detect_phase_markers(wellness_data, activities)
+    # Extract timelines (only if requested)
+    ftp_timeline = extract_ftp_timeline(activities, wellness_data) if include_extras else []
+    weight_progression = extract_weight_progression(wellness_data) if include_extras else None
 
-    # Generate summary
+    # Detect patterns (only if requested)
+    data_gaps = detect_data_gaps(activities, start_date, end_date) if tiers == "all" else []
+    phase_markers = detect_phase_markers(wellness_data, activities) if include_extras else []
+
+    # Generate summary (always include)
     summary = generate_historical_summary(
         activities, wellness_data,
         ftp_timeline, weight_progression
     )
 
-    return {
+    # Build response with only requested data
+    response: dict[str, Any] = {
         "READ_THIS_FIRST": {
             "description": "Section 11 Training History",
             "purpose": "Longitudinal data for trend analysis and periodization planning",
             "timestamp": datetime.now().isoformat(),
-            "version": "3.4.1"
+            "version": "3.4.1",
+            "tiers_included": tiers
         },
         "metadata": {
             "athlete_id": athlete_id,
@@ -121,17 +131,30 @@ async def build_history_snapshot(
                 "weight_entries": len(weight_progression["entries"]) if weight_progression else 0
             }
         },
-        "tier_90d": tier_90d,
-        "tier_180d": tier_180d,
-        "tier_1y": tier_1y,
-        "tier_2y": tier_2y,
-        "tier_3y": tier_3y,
-        "ftp_timeline": ftp_timeline,
-        "weight_progression": weight_progression,
-        "data_gaps": data_gaps,
-        "phase_markers": phase_markers,
         "summary": summary
     }
+
+    # Add tiers conditionally
+    if tier_90d:
+        response["tier_90d"] = tier_90d
+    if tier_180d:
+        response["tier_180d"] = tier_180d
+    if tier_1y:
+        response["tier_1y"] = tier_1y
+    if tier_2y:
+        response["tier_2y"] = tier_2y
+    if tier_3y:
+        response["tier_3y"] = tier_3y
+    if ftp_timeline:
+        response["ftp_timeline"] = ftp_timeline
+    if weight_progression:
+        response["weight_progression"] = weight_progression
+    if data_gaps:
+        response["data_gaps"] = data_gaps
+    if phase_markers:
+        response["phase_markers"] = phase_markers
+
+    return response
 
 
 def build_daily_tier(

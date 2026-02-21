@@ -71,6 +71,7 @@ async def get_history_snapshot(
     athlete_id: str | None = None,
     api_key: str | None = None,
     max_lookback_days: int = 1095,
+    tiers: str = "all",
 ) -> str:
     """Get longitudinal training history with tiered granularity.
 
@@ -86,10 +87,18 @@ async def get_history_snapshot(
     This tool provides complete historical context for periodization planning,
     performance progression analysis, and long-term trend identification.
 
+    To reduce response size, you can request specific tiers:
+    - "recent" = tier_90d (daily) + tier_180d (weekly) + metadata + summary (~20KB)
+    - "monthly" = tier_1y + tier_2y + tier_3y + FTP + weight + phase_markers (~12KB)
+    - "daily" = tier_90d only (~13KB)
+    - "weekly" = tier_180d only (~6KB)
+    - "all" = everything (~59KB, may exceed token limits)
+
     Args:
         athlete_id: Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
         api_key: Intervals.icu API key (optional, will use API_KEY from .env if not provided)
         max_lookback_days: Maximum history to fetch (default: 1095 = 3 years)
+        tiers: Which data to include - "all", "recent", "monthly", "daily", or "weekly" (default: "all")
 
     Returns:
         JSON string with historical data
@@ -103,6 +112,7 @@ async def get_history_snapshot(
         athlete_id=athlete_id_to_use,
         api_key=api_key,
         max_lookback_days=max_lookback_days,
+        tiers=tiers,
     )
 
     # Handle errors
