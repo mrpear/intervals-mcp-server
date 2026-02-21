@@ -118,17 +118,26 @@ async def build_latest_snapshot(
 
     # Recovery Index
     if hrv_field and today_wellness.get(hrv_field) and today_wellness.get("restingHR"):
-        hrv_baseline = calculate_baseline(baseline_data, hrv_field, baseline_days=7)
-        rhr_baseline = calculate_baseline(baseline_data, "restingHR", baseline_days=7)
-        ri = calculate_recovery_index(
-            today_wellness.get(hrv_field, 0),
-            hrv_baseline,
-            today_wellness.get("restingHR", 0),
-            rhr_baseline,
-        )
-        derived_metrics["recovery_index"] = round(ri, 2)
-        derived_metrics["hrv_baseline"] = round(hrv_baseline, 1)
-        derived_metrics["rhr_baseline"] = round(rhr_baseline, 1)
+        # Calculate baselines excluding today
+        hrv_baseline = calculate_baseline(wellness_data, hrv_field, baseline_days=7, end_date=date_str)
+        rhr_baseline = calculate_baseline(wellness_data, "restingHR", baseline_days=7, end_date=date_str)
+
+        # Only calculate RI if we have valid baselines (non-zero)
+        if hrv_baseline and hrv_baseline > 0 and rhr_baseline and rhr_baseline > 0:
+            try:
+                ri = calculate_recovery_index(
+                    today_wellness.get(hrv_field, 0),
+                    hrv_baseline,
+                    today_wellness.get("restingHR", 0),
+                    rhr_baseline,
+                )
+                derived_metrics["recovery_index"] = round(ri, 2)
+                derived_metrics["hrv_baseline"] = round(hrv_baseline, 1)
+                derived_metrics["rhr_baseline"] = round(rhr_baseline, 1)
+            except (ZeroDivisionError, TypeError) as e:
+                # Log error but continue with snapshot generation
+                derived_metrics["recovery_index"] = None
+                derived_metrics["recovery_index_error"] = f"Calculation error: {str(e)}"
 
     # ACWR
     if today_wellness.get("atl") and today_wellness.get("ctl"):
