@@ -11,6 +11,7 @@ from intervals_mcp_server.api.client import make_intervals_request
 from intervals_mcp_server.config import get_config
 from intervals_mcp_server.utils.formatting import format_activity_summary, format_intervals
 from intervals_mcp_server.utils.validation import resolve_athlete_id, resolve_date_params
+from intervals_mcp_server.utils.types import CoachTick
 
 # Import mcp instance from shared module for tool registration
 from intervals_mcp_server.mcp_instance import mcp  # noqa: F401
@@ -315,3 +316,102 @@ async def get_activity_streams(
         streams_summary += "\n"
 
     return streams_summary
+
+
+@mcp.tool()
+async def update_activity(
+    activity_id: str,
+    coach_tick: int | None = None,
+    description: str | None = None,
+    name: str | None = None,
+    feel: int | None = None,
+    perceived_exertion: int | None = None,
+    api_key: str | None = None,
+) -> str:
+    """Update activity fields.
+
+    Updates one or more fields on an activity. Common uses:
+    - Set coach's tick (1-5 rating, or -1 to unset)
+    - Update description/notes
+    - Change activity name
+    - Set feel or perceived exertion
+
+    Coach's tick scale:
+    - 5: Amazing
+    - 4: Great
+    - 3: Good
+    - 2: Needs improvement
+    - 1: Concerning
+    - -1: Remove/unset the tick
+
+    Args:
+        activity_id: The activity ID (e.g., "i127117496")
+        coach_tick: Coach's rating (1-5 to set, -1 to unset, optional)
+        description: Activity description/notes (optional, supports markdown)
+        name: Activity name (optional)
+        feel: How the athlete felt (1-5, optional)
+        perceived_exertion: RPE rating (1-10, optional)
+        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
+
+    Returns:
+        Success message or error message
+    """
+    # Build update payload with only provided fields
+    update_data: dict[str, Any] = {}
+
+    if coach_tick is not None:
+        if coach_tick == -1:
+            # -1 means unset the coach tick
+            update_data["coach_tick"] = -1
+        elif coach_tick < 1 or coach_tick > 5:
+            return "Error: coach_tick must be between 1 and 5, or -1 to unset"
+        else:
+            update_data["coach_tick"] = coach_tick
+
+    if description is not None:
+        update_data["description"] = description
+
+    if name is not None:
+        update_data["name"] = name
+
+    if feel is not None:
+        if feel < 1 or feel > 5:
+            return "Error: feel must be between 1 and 5"
+        update_data["feel"] = feel
+
+    if perceived_exertion is not None:
+        if perceived_exertion < 1 or perceived_exertion > 10:
+            return "Error: perceived_exertion must be between 1 and 10"
+        update_data["perceived_exertion"] = perceived_exertion
+
+    if not update_data:
+        return "Error: No fields provided to update"
+
+    result = await make_intervals_request(
+        url=f"/activity/{activity_id}",
+        api_key=api_key,
+        method="PUT",
+        data=update_data
+    )
+
+    if isinstance(result, dict) and "error" in result:
+        return f"Error updating activity: {result.get('message')}"
+
+    # Build success message
+    updated_fields = []
+    if coach_tick is not None:
+        if coach_tick == -1:
+            updated_fields.append("coach_tick: removed")
+        else:
+            tick_enum = CoachTick(coach_tick)
+            updated_fields.append(f"coach_tick: {coach_tick} ({tick_enum.label})")
+    if description is not None:
+        updated_fields.append("description")
+    if name is not None:
+        updated_fields.append(f"name: {name}")
+    if feel is not None:
+        updated_fields.append(f"feel: {feel}")
+    if perceived_exertion is not None:
+        updated_fields.append(f"perceived_exertion: {perceived_exertion}")
+
+    return f"Activity {activity_id} updated: {', '.join(updated_fields)}"

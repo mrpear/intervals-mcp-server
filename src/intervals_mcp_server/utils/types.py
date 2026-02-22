@@ -20,11 +20,34 @@ __all__ = [
     "PaceUnits",
     "ValueUnits",
     "TransportAliases",
+    "CoachTick",
     "Value",
     "Step",
     "SportSettings",
     "WorkoutDoc",
 ]
+
+
+class CoachTick(Enum):
+    """Coach's tick rating (1-5 scale)."""
+
+    WTF = 1
+    POOR = 2
+    SEEN = 3
+    GOOD = 4
+    AMAZING = 5
+
+    @property
+    def label(self) -> str:
+        """Return the human-readable label for this tick rating."""
+        labels = {
+            1: "WTF?",
+            2: "Poor",
+            3: "Seen",
+            4: "Good",
+            5: "Amazing"
+        }
+        return labels[self.value]
 
 
 class Option(Enum):

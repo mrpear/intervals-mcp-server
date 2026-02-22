@@ -7,6 +7,8 @@ This module contains formatting functions for handling data from the Intervals.i
 from datetime import datetime
 from typing import Any
 
+from intervals_mcp_server.utils.types import CoachTick
+
 
 def format_date_with_day_of_week(date_value: str) -> str:
     """Format a date string to include day of week for better readability.
@@ -112,6 +114,12 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
     if feel is not None:
         feel_str = f"{feel}/5" if isinstance(feel, int) else str(feel)
         _add_field(other_lines, "Feel", feel_str)
+
+    coach_tick = activity.get("coach_tick")
+    if coach_tick is not None and coach_tick > 0:
+        tick_enum = CoachTick(coach_tick)
+        tick_str = f"{coach_tick}/5 ({tick_enum.label})"
+        _add_field(other_lines, "Coach Tick", tick_str)
 
     if other_lines:
         lines.append("\nOther Metrics:")
