@@ -22,6 +22,7 @@ async def get_recovery_metrics(
     athlete_id: str | None = None,
     api_key: str | None = None,
     date: str | None = None,
+    baseline_days: int = 7,
 ) -> str:
     """Get recovery and readiness metrics for an athlete.
 
@@ -41,6 +42,7 @@ async def get_recovery_metrics(
         athlete_id: The Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
         api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
         date: Date to analyze (YYYY-MM-DD, default: today)
+        baseline_days: Number of days for baseline calculation (default: 7)
     """
     athlete_id_to_use, error_msg = resolve_athlete_id(athlete_id, config.athlete_id)
     if error_msg:
@@ -52,13 +54,14 @@ async def get_recovery_metrics(
 
     # Calculate date ranges
     date_obj = datetime.fromisoformat(date)
-    (date_obj - timedelta(days=14)).strftime("%Y-%m-%d")
-    start_date_fitness = (date_obj - timedelta(days=42)).strftime("%Y-%m-%d")
+    # Ensure we fetch enough data for baseline calculation
+    # Use max of baseline_days + buffer and 42 days (for fitness metrics)
+    lookback_days = max(baseline_days + 7, 42)
+    start_date_wellness = (date_obj - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
 
     # Fetch wellness data (includes both wellness and fitness metrics: CTL, ATL, TSB)
-    # Note: We use the longer date range to ensure we have fitness data
     wellness_params = {
-        "oldest": start_date_fitness,  # Use longer range for fitness calculation
+        "oldest": start_date_wellness,
         "newest": date
     }
     wellness_result = await make_intervals_request(
@@ -99,11 +102,11 @@ async def get_recovery_metrics(
     if not hrv_field:
         return f"No HRV data found for {date}"
 
-    # Calculate baselines (7-day average excluding today)
+    # Calculate baselines (N-day average excluding today)
     # Pass end_date=date to exclude today from baseline calculation
     # Outlier filtering is enabled by default
-    hrv_baseline = calculate_baseline(wellness_data, hrv_field, baseline_days=7, end_date=date)
-    rhr_baseline = calculate_baseline(wellness_data, 'restingHR', baseline_days=7, end_date=date)
+    hrv_baseline = calculate_baseline(wellness_data, hrv_field, baseline_days=baseline_days, end_date=date)
+    rhr_baseline = calculate_baseline(wellness_data, 'restingHR', baseline_days=baseline_days, end_date=date)
 
     # Get today's values
     hrv_today = today_wellness.get(hrv_field)
@@ -123,7 +126,7 @@ async def get_recovery_metrics(
     output = [f"Recovery Metrics for {date}:\n"]
 
     # Recovery Index section
-    output.append("Recovery Index (RI):")
+    output.append(f"Recovery Index (RI) - {baseline_days}-day baseline:")
     output.append(f"  HRV today: {hrv_today:.1f} ms (baseline: {hrv_baseline:.1f} ms)")
     output.append(f"  RHR today: {rhr_today:.0f} bpm (baseline: {rhr_baseline:.0f} bpm)")
     output.append(f"  RI: {ri:.2f} - {ri_interpretation}")
