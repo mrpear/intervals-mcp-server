@@ -21,6 +21,23 @@ from intervals_mcp_server.mcp_instance import mcp  # noqa: F401
 config = get_config()
 
 
+def _calculate_total_duration(steps: list[dict[str, Any]]) -> int:
+    """Calculate total duration in seconds from workout steps.
+
+    Handles nested steps (reps) recursively.
+    """
+    total = 0
+    for step in steps:
+        if "reps" in step and "steps" in step:
+            # Nested steps - multiply by reps
+            nested_duration = _calculate_total_duration(step["steps"])
+            total += nested_duration * step["reps"]
+        elif "duration" in step:
+            # Single step with duration
+            total += step["duration"]
+    return total
+
+
 def _prepare_event_data(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     name: str,
     start_date: str,
@@ -56,9 +73,39 @@ def _prepare_event_data(  # pylint: disable=too-many-arguments,too-many-position
     # Add optional fields only if provided
     if workout_type:
         event_data["type"] = workout_type
-    if workout_doc:
-        event_data["workout_doc"] = workout_doc
-    if description:
+
+    # Handle workout_doc vs description
+    # CRITICAL: Do NOT send workout_doc JSON - it prevents TSS calculation!
+    # Instead, convert to text description and let API parse it
+    if workout_doc is not None:
+        from intervals_mcp_server.utils.types import WorkoutDoc as WorkoutDocType
+
+        # Convert to WorkoutDoc object if it's a dict
+        workout_doc_dict: dict[str, Any]
+        if isinstance(workout_doc, dict):
+            workout_doc_obj = WorkoutDocType.from_dict(workout_doc)
+            workout_doc_dict = workout_doc
+        else:
+            # Already a WorkoutDoc instance
+            workout_doc_obj = workout_doc
+            workout_doc_dict = workout_doc.to_dict()
+
+        # Convert workout_doc to text format
+        workout_text = str(workout_doc_obj)
+
+        # If both workout_doc and description provided, combine them
+        if description is not None:
+            event_data["description"] = f"{description}\n\n{workout_text}"
+        else:
+            event_data["description"] = workout_text
+
+        # Calculate total duration from steps if moving_time not provided
+        if moving_time is None and "steps" in workout_doc_dict:
+            total_duration = _calculate_total_duration(workout_doc_dict["steps"])
+            if total_duration > 0:
+                event_data["moving_time"] = total_duration
+    elif description is not None:
+        # Use provided description as-is
         event_data["description"] = description
     if moving_time is not None:
         event_data["moving_time"] = moving_time

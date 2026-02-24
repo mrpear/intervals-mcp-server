@@ -113,9 +113,11 @@ async def add_workout_to_plan(
     Args:
         plan_id: ID of the training plan folder
         name: Workout name
-        description: Workout description
+        description: Workout description or notes. If both description and workout_doc
+            are provided, they will be combined with description first, then workout structure.
         day: Absolute day from plan start (0=first day, 7=start of week 2, etc.)
-        workout_doc: Workout document structure with steps (optional)
+        workout_doc: Workout document structure with steps (optional). Will be converted to text
+            format and combined with description if both provided.
         workout_type: Type of workout (default: "Ride")
         athlete_id: The Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
         api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
@@ -150,8 +152,14 @@ async def add_workout_to_plan(
             workout_doc_obj = workout_doc
             workout_doc_dict = workout_doc.to_dict()
 
-        # Set description as text format - API will parse this with targets
-        workout_data["description"] = str(workout_doc_obj)
+        # Convert workout_doc to text format
+        workout_text = str(workout_doc_obj)
+
+        # If both workout_doc and description provided, combine them
+        if description:
+            workout_data["description"] = f"{description}\n\n{workout_text}"
+        else:
+            workout_data["description"] = workout_text
 
         # Calculate total duration from steps
         total_duration = 0
@@ -229,8 +237,15 @@ async def add_workouts_bulk(
                 workout_doc_obj = workout_doc
                 workout_doc_dict = workout_doc.to_dict()
 
-            # Set description as text format - API will parse this with targets
-            workout["description"] = str(workout_doc_obj)
+            # Convert workout_doc to text format
+            workout_text = str(workout_doc_obj)
+
+            # If both workout_doc and description provided, combine them
+            existing_description = workout.get("description", "")
+            if existing_description:
+                workout["description"] = f"{existing_description}\n\n{workout_text}"
+            else:
+                workout["description"] = workout_text
 
             # Calculate total duration from steps
             total_duration = 0
@@ -311,6 +326,76 @@ async def get_training_plans(
             summary += f"  - Start date: {start_date}\n\n"
         return summary
     return "No training plans found"
+
+
+@mcp.tool()
+async def get_plan_workouts(
+    plan_id: int,
+    athlete_id: str | None = None,
+    api_key: str | None = None,
+) -> str:
+    """Get all workout templates from a specific training plan
+
+    Args:
+        plan_id: ID of the training plan folder
+        athlete_id: The Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
+        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
+    """
+    # Resolve athlete ID
+    athlete_id_to_use, error_msg = resolve_athlete_id(athlete_id, config.athlete_id)
+    if error_msg:
+        return error_msg
+
+    # Make API request to get all folders
+    result = await make_intervals_request(
+        url=f"/athlete/{athlete_id_to_use}/folders",
+        api_key=api_key,
+        method="GET",
+    )
+
+    # Handle errors
+    if isinstance(result, dict) and "error" in result:
+        error_message = result.get("message", "Unknown error")
+        return f"Error fetching plan workouts: {error_message}"
+
+    # Find the specific plan
+    if isinstance(result, list):
+        plan = next((f for f in result if f.get("id") == plan_id), None)
+        if not plan:
+            return f"Training plan with ID {plan_id} not found"
+
+        plan_name = plan.get("name", "Unknown")
+        workouts = plan.get("children", [])
+
+        if not workouts:
+            return f"No workouts found in plan '{plan_name}' (ID: {plan_id})"
+
+        # Format workout details
+        summary = f"Training Plan: {plan_name} (ID: {plan_id})\n"
+        summary += f"Total Workouts: {len(workouts)}\n\n"
+
+        for workout in workouts:
+            workout_id = workout.get("id")
+            workout_name = workout.get("name", "Unnamed")
+            day = workout.get("day", 0)
+            workout_type = workout.get("type", "Unknown")
+            moving_time = workout.get("moving_time", 0)
+            duration_mins = moving_time // 60 if moving_time else 0
+            description = workout.get("description", "")
+
+            summary += f"Day {day}: {workout_name}\n"
+            summary += f"  ID: {workout_id}\n"
+            summary += f"  Type: {workout_type}\n"
+            summary += f"  Duration: {duration_mins}min\n"
+            if description:
+                # Truncate long descriptions
+                desc_preview = description[:100] + "..." if len(description) > 100 else description
+                summary += f"  Description: {desc_preview}\n"
+            summary += "\n"
+
+        return summary
+
+    return f"Error: Unexpected response format when fetching plan {plan_id}"
 
 
 @mcp.tool()
