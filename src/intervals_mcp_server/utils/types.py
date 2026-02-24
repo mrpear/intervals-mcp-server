@@ -6,7 +6,7 @@ used in the Intervals.icu API, including workout steps, values, and documentatio
 Also includes enums for server configuration.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Dict, Optional, Any, Union
 from enum import Enum, StrEnum
 import json
@@ -400,6 +400,31 @@ class Step:  # pylint: disable=too-many-instance-attributes
             return f"{float_to_str(self.distance)}mtr"
         return f"{float_to_str(self.distance / 1000)}km"
 
+    def _flatten(self) -> "list[Step]":
+        """Recursively flatten nested reps into a list of simple steps."""
+        if self.reps is None:
+            return [self]
+
+        # Check if any child has reps (nested reps)
+        has_nested_reps = self.steps and any(s.reps is not None for s in self.steps)
+
+        if not has_nested_reps:
+            return [self]
+
+        # Unroll outer loop and recursively flatten children
+        result: list[Step] = []
+        for i in range(self.reps):
+            for child in self.steps:
+                if child.reps is not None:
+                    # Child with reps - copy, set label, and recursively flatten
+                    label = f"{self.text} {i + 1}" if self.text else f"Set {i + 1}"
+                    child_with_label = replace(child, text=label)
+                    result.extend(child_with_label._flatten())
+                else:
+                    # Regular step - append as-is
+                    result.append(child)
+        return result
+
     def _format(self, nested: bool = False) -> str:  # pylint: disable=too-many-branches
         """Convert Step to string representation.
 
@@ -407,9 +432,11 @@ class Step:  # pylint: disable=too-many-instance-attributes
         """
         val = ""
         if self.reps is not None:
-            if nested:
-                raise ValueError("Nested steps not supported")
-            val += f"\n{self.reps}x "
+            # Format reps - show text first if present, then reps count on same line
+            if self.text is not None:
+                val += f"\n{self.text} {self.reps}x"
+            else:
+                val += f"\n{self.reps}x "
         else:
             if not nested and self.warmup:
                 val += "\nWarmup\n"
@@ -441,8 +468,11 @@ class Step:  # pylint: disable=too-many-instance-attributes
                 val += f"{self.pace} "
             if self.cadence is not None:
                 val += f"{self.cadence} "
-        if self.text is not None:
-            val += f"{self.text} "
+
+            # Add text for non-reps steps
+            if self.text is not None:
+                val += f"{self.text} "
+
         if self.reps is not None and self.steps is not None:
             for step in self.steps:
                 val += "\n" + step._format(nested=True)
@@ -602,6 +632,12 @@ class WorkoutDoc:  # pylint: disable=too-many-instance-attributes
         if self.description is not None:
             val += f"{self.description}\n"
         if self.steps is not None:
+            # Flatten nested reps before formatting
+            flattened_steps: list[Step] = []
             for step in self.steps:
+                flattened_steps.extend(step._flatten())
+
+            # Format all flattened steps
+            for step in flattened_steps:
                 val += step.__str__() + "\n"
         return val
