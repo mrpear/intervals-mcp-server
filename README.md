@@ -225,6 +225,7 @@ Once the server is running and Claude Desktop is configured, you can use the fol
 - `add_workout_to_plan`: Add a single workout template to a plan
 - `add_workouts_bulk`: Add multiple workout templates efficiently
 - `get_training_plans`: List all training plans
+- `get_plan_workouts`: Get all workout templates from a specific plan
 - `delete_training_plan`: Delete a training plan and its workouts
 
 **Wellness:**

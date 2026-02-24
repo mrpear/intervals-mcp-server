@@ -41,6 +41,7 @@ Usage:
             - add_workout_to_plan
             - add_workouts_bulk
             - get_training_plans
+            - get_plan_workouts
             - delete_training_plan
 
         Wellness:
@@ -128,6 +129,7 @@ from intervals_mcp_server.tools.plans import (  # pylint: disable=wrong-import-p
     add_workout_to_plan,
     add_workouts_bulk,
     get_training_plans,
+    get_plan_workouts,
     delete_training_plan,
 )
 from intervals_mcp_server.tools.performance import (  # pylint: disable=wrong-import-position  # noqa: E402
