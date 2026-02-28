@@ -109,6 +109,7 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
     end_date: str | None = None,
     limit: int = 10,
     include_unnamed: bool = False,
+    fields: str | None = None,
 ) -> str:
     """Get a list of activities for an athlete from Intervals.icu
 
@@ -119,6 +120,8 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
         end_date: End date in YYYY-MM-DD format (optional, defaults to today)
         limit: Maximum number of activities to return (optional, defaults to 10)
         include_unnamed: Whether to include unnamed activities (optional, defaults to False)
+        fields: Comma-separated list of fields to include in the response, e.g. "id,name,start_date_local,type,distance"
+                (optional, defaults to all fields)
     """
     # Resolve athlete ID and date parameters
     athlete_id_to_use, error_msg = resolve_athlete_id(athlete_id, config.athlete_id)
@@ -131,7 +134,9 @@ async def get_activities(  # pylint: disable=too-many-arguments,too-many-return-
     api_limit = limit * 3 if not include_unnamed else limit
 
     # Call the Intervals.icu API
-    params = {"oldest": start_date, "newest": end_date, "limit": api_limit}
+    params: dict[str, Any] = {"oldest": start_date, "newest": end_date, "limit": api_limit}
+    if fields:
+        params["fields"] = fields
     result = await make_intervals_request(
         url=f"/athlete/{athlete_id_to_use}/activities", api_key=api_key, params=params
     )
@@ -316,6 +321,72 @@ async def get_activity_streams(
         streams_summary += "\n"
 
     return streams_summary
+
+
+@mcp.tool()
+async def search_activities(
+    query: str,
+    athlete_id: str | None = None,
+    api_key: str | None = None,
+    limit: int = 50,
+) -> str:
+    """Search for activities by name or tag across all time (no date range constraint).
+
+    Args:
+        query: Search query. Case-insensitive name search, or exact tag search if it starts with #
+               (e.g., "morning ride" or "#race")
+        athlete_id: The Intervals.icu athlete ID (optional, will use ATHLETE_ID from .env if not provided)
+        api_key: The Intervals.icu API key (optional, will use API_KEY from .env if not provided)
+        limit: Maximum number of activities to return (optional, defaults to 50)
+    """
+    athlete_id_to_use, error_msg = resolve_athlete_id(athlete_id, config.athlete_id)
+    if error_msg:
+        return error_msg
+
+    result = await make_intervals_request(
+        url=f"/athlete/{athlete_id_to_use}/activities/search",
+        api_key=api_key,
+        params={"q": query, "limit": limit},
+    )
+
+    if isinstance(result, dict) and "error" in result:
+        return f"Error searching activities: {result.get('message', 'Unknown error')}"
+
+    if not result or not isinstance(result, list):
+        return f"No activities found matching '{query}'."
+
+    lines = [f"Activities matching '{query}' ({len(result)} results):\n"]
+    for activity in result:
+        if not isinstance(activity, dict):
+            continue
+        date = activity.get("start_date_local", "Unknown")
+        name = activity.get("name", "Unnamed")
+        activity_id = activity.get("id", "")
+        activity_type = activity.get("type", "")
+        distance = activity.get("distance")
+        moving_time = activity.get("moving_time")
+        tags = activity.get("tags") or []
+        description = activity.get("description", "")
+
+        line = f"- [{date}] {name} (ID: {activity_id})"
+        if activity_type:
+            line += f" | {activity_type}"
+        if distance:
+            line += f" | {distance:.0f}m"
+        if moving_time:
+            minutes, seconds = divmod(moving_time, 60)
+            hours, minutes = divmod(minutes, 60)
+            if hours:
+                line += f" | {hours}h{minutes:02d}m"
+            else:
+                line += f" | {minutes}m{seconds:02d}s"
+        if tags:
+            line += f" | tags: {', '.join(tags)}"
+        lines.append(line)
+        if description:
+            lines.append(f"  {description}")
+
+    return "\n".join(lines)
 
 
 @mcp.tool()

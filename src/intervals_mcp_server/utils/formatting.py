@@ -44,7 +44,7 @@ def format_activity_summary(activity: dict[str, Any]) -> str:
     lines = []
 
     # Basic info (always show)
-    start_time = activity.get("startTime", activity.get("start_date", "Unknown"))
+    start_time = activity.get("startTime", activity.get("start_date_local", activity.get("start_date", "Unknown")))
     if isinstance(start_time, str) and len(start_time) > 10:
         try:
             dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))

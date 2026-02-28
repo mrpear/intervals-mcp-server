@@ -13,6 +13,7 @@ from intervals_mcp_server.tools.activities import (  # noqa: F401
     get_activity_details,
     get_activity_intervals,
     get_activity_streams,
+    search_activities,
     update_activity,
 )
 from intervals_mcp_server.tools.events import (  # noqa: F401
@@ -66,6 +67,7 @@ __all__ = [
     "get_activity_details",
     "get_activity_intervals",
     "get_activity_streams",
+    "search_activities",
     "update_activity",
     "get_events",
     "get_event_by_id",

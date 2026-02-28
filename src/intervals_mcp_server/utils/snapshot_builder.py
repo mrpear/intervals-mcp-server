@@ -30,6 +30,24 @@ from intervals_mcp_server.analytics.tid_drift import calculate_tid_comparison
 from intervals_mcp_server.analytics.baselines import calculate_baseline
 
 
+def _interpret_sleep_quality(quality: int) -> str:
+    """Interpret sleep quality categorical score.
+
+    Sleep quality (1-4) is derived from device sleep score (0-100):
+    - 1 = Great (90-100)
+    - 2 = Good (80-89)
+    - 3 = Average (60-79)
+    - 4 = Poor (below 60)
+    """
+    interpretations = {
+        1: "Great",
+        2: "Good",
+        3: "Average",
+        4: "Poor"
+    }
+    return interpretations.get(quality, "Unknown")
+
+
 async def build_latest_snapshot(
     athlete_id: str,
     api_key: str | None = None,
@@ -249,6 +267,8 @@ async def build_latest_snapshot(
                 "resting_hr": round(today_wellness.get("restingHR", 0), 0),
                 "sleep_hours": round(today_wellness.get("sleepSecs", 0) / 3600, 1),
                 "sleep_score": today_wellness.get("sleepScore", 0),
+                "sleep_quality": today_wellness.get("sleepQuality", 0),
+                "sleep_quality_text": _interpret_sleep_quality(today_wellness.get("sleepQuality", 0)),
             },
         },
         "derived_metrics": derived_metrics,
