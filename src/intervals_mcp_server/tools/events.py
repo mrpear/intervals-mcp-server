@@ -5,7 +5,7 @@ This module contains tools for retrieving, creating, updating, and deleting athl
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from intervals_mcp_server.api.client import make_intervals_request
@@ -54,6 +54,7 @@ def _prepare_event_data(  # pylint: disable=too-many-arguments,too-many-position
     icu_ftp: int | None = None,
     start_time: str | None = None,
     entered: bool | None = None,
+    for_week: bool = False,
 ) -> dict[str, Any]:
     """Prepare event data dictionary for API request."""
     # Handle start_date_local with optional time component
@@ -124,6 +125,8 @@ def _prepare_event_data(  # pylint: disable=too-many-arguments,too-many-position
         event_data["icu_ftp"] = icu_ftp
     if entered is not None:
         event_data["entered"] = entered
+    if for_week:
+        event_data["for_week"] = True
 
     return event_data
 
@@ -380,6 +383,7 @@ async def add_or_update_event(  # pylint: disable=too-many-arguments,too-many-po
     icu_ftp: int | None = None,
     start_time: str | None = None,
     entered: bool | None = None,
+    for_week: bool = False,
 ) -> str:
     """Create or update a calendar event on Intervals.icu.
     If event_id is provided, the event will be updated instead of created.
@@ -408,6 +412,8 @@ async def add_or_update_event(  # pylint: disable=too-many-arguments,too-many-po
         sub_type: Event sub-type: NONE, COMMUTE, WARMUP, COOLDOWN, RACE (optional)
         icu_ftp: FTP value for SET_EFTP category (optional)
         entered: Whether you have already entered/registered for the race (optional, for RACE categories)
+        for_week: If true, creates a week-spanning event via the bulk endpoint. start_date should be
+                  Monday; end_date defaults to start_date + 7 days if not provided (optional)
 
     Example:
         "workout_doc": {
@@ -465,6 +471,11 @@ async def add_or_update_event(  # pylint: disable=too-many-arguments,too-many-po
     if not start_date:
         start_date = datetime.now().strftime("%Y-%m-%d")
 
+    # When for_week=True, end_date must be the first day of next week (start + 7)
+    if for_week and not end_date:
+        week_start = datetime.strptime(start_date.split("T")[0], "%Y-%m-%d")
+        end_date = (week_start + timedelta(days=7)).strftime("%Y-%m-%d")
+
     try:
         event_data = _prepare_event_data(
             name=name,
@@ -482,6 +493,7 @@ async def add_or_update_event(  # pylint: disable=too-many-arguments,too-many-po
             icu_ftp=icu_ftp,
             start_time=start_time,
             entered=entered,
+            for_week=for_week,
         )
         return await _create_or_update_event_request(
             athlete_id_to_use, api_key, event_data, start_date, event_id
@@ -509,14 +521,19 @@ async def _create_or_update_event_request(
     Returns:
         Formatted response string.
     """
-    url = f"/athlete/{athlete_id}/events"
     if event_id:
-        url += f"/{event_id}"
-    result = await make_intervals_request(
-        url=url,
-        api_key=api_key,
-        data=event_data,
-        method="PUT" if event_id else "POST",
-    )
+        result = await make_intervals_request(
+            url=f"/athlete/{athlete_id}/events/{event_id}",
+            api_key=api_key,
+            data=event_data,
+            method="PUT",
+        )
+    else:
+        result = await make_intervals_request(
+            url=f"/athlete/{athlete_id}/events/bulk",
+            api_key=api_key,
+            data=[event_data],
+            method="POST",
+        )
     action = "updated" if event_id else "created"
     return _handle_event_response(result, action, athlete_id, start_date)
